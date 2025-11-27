@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { getUserInfo, logout, isAuthenticated, getToken } from '../../services/auth'
+import { getUserInfo, logout, isAuthenticated } from '../../services/auth'
 import './Navigation.css'
 
 interface UserInfo {
@@ -14,30 +14,37 @@ const Navigation: React.FC = () => {
   const [user, setUser] = useState<string | null>(null)
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
     const fetchUserInfo = async () => {
-      console.log('Checking authentication status...')
-      console.log('Is authenticated:', isAuthenticated())
-      console.log('Token:', getToken())
-      if (isAuthenticated()) {
-        try {
+      setIsLoading(true)
+      try {
+        if (isAuthenticated()) {
           const info = await getUserInfo()
-          console.log('User info:', info)
           if (info) {
             setUser(info.username || null)
             setUserInfo(info)
-          }
-        } catch (error) {
-          console.error('Error fetching user info:', error)
-          // 即使获取用户信息失败，也可以尝试使用localStorage中的用户名（如果有的话）
-          const storedUser = localStorage.getItem('username')
-          if (storedUser) {
-            setUser(storedUser)
-            setUserInfo({ username: storedUser })
+          } else {
+            // 即使getUserInfo返回null，也可以尝试使用localStorage中的用户名
+            const storedUser = localStorage.getItem('username')
+            if (storedUser) {
+              setUser(storedUser)
+              setUserInfo({ username: storedUser })
+            }
           }
         }
+      } catch (error) {
+        console.error('Error fetching user info:', error)
+        // 即使获取用户信息失败，也可以尝试使用localStorage中的用户名
+        const storedUser = localStorage.getItem('username')
+        if (storedUser) {
+          setUser(storedUser)
+          setUserInfo({ username: storedUser })
+        }
+      } finally {
+        setIsLoading(false)
       }
     }
     fetchUserInfo()
@@ -115,17 +122,27 @@ const Navigation: React.FC = () => {
             </li>
           </ul>
           <div className="nav-user">
-            {user && (
+            {isLoading ? (
+              <div className="user-avatar loading" title="Loading user info...">
+                <span className="loading-spinner"></span>
+              </div>
+            ) : user ? (
               <div className="user-info" onClick={(e) => e.stopPropagation()}>
                 <div 
                   className="user-avatar"
                   onClick={toggleUserMenu}
-                  title="Click to view user info"
+                  title={`Click to view ${user}'s info`}
+                  aria-haspopup="true"
+                  aria-expanded={showUserMenu}
                 >
                   {getInitials(user)}
                 </div>
                 {showUserMenu && (
-                  <div className="user-dropdown">
+                  <div 
+                    className="user-dropdown"
+                    role="menu"
+                    aria-labelledby="user-avatar"
+                  >
                     <div className="user-details">
                       <div className="user-name">{user}</div>
                       {userInfo?.full_name && (
@@ -134,14 +151,33 @@ const Navigation: React.FC = () => {
                       {userInfo?.email && (
                         <div className="user-email">{userInfo.email}</div>
                       )}
+                      {userInfo?.disabled && (
+                        <div className="user-status disabled">Account Disabled</div>
+                      )}
                     </div>
                     <div className="dropdown-divider"></div>
-                    <button className="logout-btn dropdown-btn" onClick={handleLogout}>
+                    <NavLink 
+                      to="/profile" 
+                      className="dropdown-btn profile-btn" 
+                      onClick={() => setShowUserMenu(false)}
+                      role="menuitem"
+                    >
+                      Profile
+                    </NavLink>
+                    <button 
+                      className="logout-btn dropdown-btn" 
+                      onClick={handleLogout}
+                      role="menuitem"
+                    >
                       Logout
                     </button>
                   </div>
                 )}
               </div>
+            ) : (
+              <NavLink to="/" className="login-btn">
+                Login
+              </NavLink>
             )}
           </div>
         </div>

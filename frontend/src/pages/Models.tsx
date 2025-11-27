@@ -52,7 +52,7 @@ const Models: React.FC = () => {
   }
 
   return (
-    <div className="container">
+    <div className="container page-transition">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1>Models</h1>
       </div>

@@ -3,9 +3,10 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.user import User
-from app.schemas.auth import Token, TokenData
+from app.schemas.auth import Token, TokenData, UserResponse
 from app.services.auth import authenticate_user, create_access_token
 from app.db.database import settings
+from app.api.deps import get_current_active_user
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -26,3 +27,8 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/users/me", response_model=UserResponse)
+def read_users_me(current_user: User = Depends(get_current_active_user)):
+    """获取当前用户信息"""
+    return current_user

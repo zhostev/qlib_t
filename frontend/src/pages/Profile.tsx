@@ -24,7 +24,7 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <div className="profile-container">
+    <div className="container page-transition">
       <h1>User Profile</h1>
       <div className="profile-card">
         <h2>Personal Information</h2>

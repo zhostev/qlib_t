@@ -118,7 +118,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="container">
+    <div className="container page-transition">
       <h1>Dashboard</h1>
       <div className="dashboard">
         <div className="card stats-card">

@@ -145,7 +145,7 @@ const ProfitLoss: React.FC = () => {
   }
 
   return (
-    <div className="container">
+    <div className="container page-transition">
       <h1>收益情况</h1>
       
       <div className="dashboard">

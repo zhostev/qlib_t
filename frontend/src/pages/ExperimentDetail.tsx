@@ -136,7 +136,7 @@ const ExperimentDetail: React.FC = () => {
   }
 
   return (
-    <div className="container">
+    <div className="container page-transition">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1>Experiment: {experiment.name}</h1>
         <button className="btn" onClick={() => navigate('/experiments')}>

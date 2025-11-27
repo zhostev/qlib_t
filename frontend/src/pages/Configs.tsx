@@ -94,7 +94,7 @@ const Configs: React.FC = () => {
   }
 
   return (
-    <div className="container">
+    <div className="container page-transition">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1>Configs</h1>
         <button className="btn" onClick={() => setShowForm(true)}>
