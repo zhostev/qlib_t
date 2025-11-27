@@ -100,6 +100,7 @@ const Experiments: React.FC = () => {
   const handleConfigChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const configId = parseInt(e.target.value)
     setSelectedConfig(configId)
+    setSelectedBenchmark(null)
     
     const config = configs.find(c => c.id === configId)
     if (config) {
@@ -109,6 +110,20 @@ const Experiments: React.FC = () => {
         setName(config.name.replace(' Template', ''))
         setDescription(config.description || '')
       }
+    }
+  }
+  
+  const handleBenchmarkChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const benchmarkId = e.target.value
+    setSelectedBenchmark(benchmarkId)
+    setSelectedConfig(null)
+    
+    const benchmark = benchmarks.find(b => b.id === benchmarkId)
+    if (benchmark) {
+      setYamlContent(benchmark.content)
+      // 自动填充名称和描述
+      setName(benchmark.name)
+      setDescription(`基于${benchmark.model}模型的benchmark实验`)
     }
   }
 
@@ -285,7 +300,23 @@ const Experiments: React.FC = () => {
               />
             </div>
             <div className="form-group" style={{ marginBottom: '15px' }}>
-              <label htmlFor="config">选择配置模板</label>
+              <label htmlFor="benchmark">选择Benchmark样例</label>
+              <select
+                id="benchmark"
+                value={selectedBenchmark || ''}
+                onChange={handleBenchmarkChange}
+              >
+                <option value="">-- 选择Benchmark样例 --</option>
+                {benchmarks.map(benchmark => (
+                  <option key={benchmark.id} value={benchmark.id}>
+                    {benchmark.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-group" style={{ marginBottom: '15px' }}>
+              <label htmlFor="config">或选择配置模板</label>
               <select
                 id="config"
                 value={selectedConfig || ''}

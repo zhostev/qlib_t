@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.experiment import Experiment
 from app.models.user import User
 from app.schemas.experiment import ExperimentCreate, ExperimentResponse, ExperimentUpdate
 from app.services.experiment import create_experiment, get_experiment, get_experiments, update_experiment, delete_experiment
-from app.tasks.train import train_model_task
+from app.services.task import TaskService
 from app.api.deps import get_current_active_user, get_current_developer_user
 
 router = APIRouter()
@@ -33,12 +33,12 @@ def delete_existing_experiment(experiment_id: int, db: Session = Depends(get_db)
     return delete_experiment(db=db, experiment_id=experiment_id)
 
 @router.post("/{experiment_id}/run")
-def run_experiment(experiment_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current_user: User = Depends(get_current_developer_user)):
+def run_experiment(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_developer_user)):
     experiment = get_experiment(db=db, experiment_id=experiment_id)
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
     
-    # Add training task to background
-    background_tasks.add_task(train_model_task, experiment_id, experiment.config, db)
+    # Create a task instead of directly running
+    task = TaskService.create_task(db=db, experiment_id=experiment_id, task_type="train")
     
-    return {"message": "Experiment started successfully"}
+    return {"message": "Experiment task created successfully", "task_id": task.id}
