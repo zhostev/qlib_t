@@ -136,7 +136,7 @@ const Admin: React.FC = () => {
 
   return (
     <div className="admin-page">
-      <h1>Admin Dashboard</h1>
+      <h1>系统管理</h1>
       
       {error && (
         <div className="error-message">
@@ -147,7 +147,7 @@ const Admin: React.FC = () => {
 
       <div className="admin-actions">
         <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-          Add New User
+          添加用户
         </button>
       </div>
 
@@ -156,14 +156,14 @@ const Admin: React.FC = () => {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Full Name</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Created At</th>
-              <th>Last Login</th>
-              <th>Actions</th>
+              <th>用户名</th>
+              <th>邮箱</th>
+              <th>全名</th>
+              <th>角色</th>
+              <th>状态</th>
+              <th>创建时间</th>
+              <th>最后登录</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -174,7 +174,7 @@ const Admin: React.FC = () => {
                 <td>{user.email || '-'}</td>
                 <td>{user.full_name || '-'}</td>
                 <td>{user.role}</td>
-                <td>{user.disabled ? 'Disabled' : 'Active'}</td>
+                <td>{user.disabled ? '禁用' : '活跃'}</td>
                 <td>{new Date(user.created_at).toLocaleDateString()}</td>
                 <td>{user.last_login ? new Date(user.last_login).toLocaleString() : '-'}</td>
                 <td>
@@ -182,13 +182,13 @@ const Admin: React.FC = () => {
                     className="btn btn-sm btn-primary"
                     onClick={() => openEditModal(user)}
                   >
-                    Edit
+                    编辑
                   </button>
                   <button 
                     className="btn btn-sm btn-danger"
                     onClick={() => handleDeleteUser(user.id)}
                   >
-                    Delete
+                    删除
                   </button>
                 </td>
               </tr>
@@ -202,12 +202,12 @@ const Admin: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h2>Add New User</h2>
+              <h2>添加新用户</h2>
               <button className="close-btn" onClick={() => setShowAddModal(false)}>×</button>
             </div>
             <form onSubmit={handleAddUser} className="modal-body">
               <div className="form-group">
-                <label>Username</label>
+                <label>用户名</label>
                 <input
                   type="text"
                   name="username"
@@ -217,7 +217,7 @@ const Admin: React.FC = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Email</label>
+                <label>邮箱</label>
                 <input
                   type="email"
                   name="email"
@@ -226,7 +226,7 @@ const Admin: React.FC = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Full Name</label>
+                <label>全名</label>
                 <input
                   type="text"
                   name="full_name"
@@ -235,7 +235,7 @@ const Admin: React.FC = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Password</label>
+                <label>密码</label>
                 <input
                   type="password"
                   name="password"
@@ -245,15 +245,15 @@ const Admin: React.FC = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Role</label>
+                <label>角色</label>
                 <select
                   name="role"
                   value={formData.role}
                   onChange={handleInputChange}
                 >
-                  <option value="viewer">Viewer</option>
-                  <option value="developer">Developer</option>
-                  <option value="admin">Admin</option>
+                  <option value="viewer">查看者</option>
+                  <option value="developer">开发者</option>
+                  <option value="admin">管理员</option>
                 </select>
               </div>
               <div className="form-group checkbox-group">
@@ -264,14 +264,14 @@ const Admin: React.FC = () => {
                   checked={formData.disabled}
                   onChange={handleInputChange}
                 />
-                <label htmlFor="disabled">Disabled</label>
+                <label htmlFor="disabled">禁用</label>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
-                  Cancel
+                  取消
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Create User
+                  创建用户
                 </button>
               </div>
             </form>
@@ -284,7 +284,7 @@ const Admin: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h2>Edit User: {currentUser.username}</h2>
+              <h2>编辑用户: {currentUser.username}</h2>
               <button className="close-btn" onClick={() => setShowEditModal(false)}>×</button>
             </div>
             <form onSubmit={handleEditUser} className="modal-body">
@@ -349,10 +349,10 @@ const Admin: React.FC = () => {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>
-                  Cancel
+                  取消
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Update User
+                  更新用户
                 </button>
               </div>
             </form>

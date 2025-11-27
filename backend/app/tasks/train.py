@@ -28,6 +28,8 @@ async def train_model_task(experiment_id: int, config: dict, db):
         
         # 更新实验状态为运行中
         experiment.status = "running"
+        experiment.start_time = func.now()
+        experiment.progress = 0.0
         db.commit()
         logger.info(f"Experiment {experiment_id} status updated to 'running'")
         
@@ -35,6 +37,10 @@ async def train_model_task(experiment_id: int, config: dict, db):
         logger.info("Initializing QLib...")
         qlib.init()
         logger.info("QLib initialized successfully")
+        
+        # 更新进度
+        experiment.progress = 10.0
+        db.commit()
         
         # 开始实验
         with R.start(experiment_name=f'exp_{experiment_id}'):
@@ -47,6 +53,10 @@ async def train_model_task(experiment_id: int, config: dict, db):
             logger.info(f"Model config: {model_config['class']} from {model_config['module_path']}")
             logger.info(f"Dataset config: {dataset_config['class']} from {dataset_config['module_path']}")
             
+            # 更新进度
+            experiment.progress = 20.0
+            db.commit()
+            
             # 动态加载数据集
             logger.info(f"Loading dataset {dataset_config['class']}...")
             dataset_class = getattr(
@@ -55,6 +65,10 @@ async def train_model_task(experiment_id: int, config: dict, db):
             )
             dataset = dataset_class(**dataset_config.get('kwargs', {}))
             logger.info(f"Dataset {dataset_config['class']} loaded successfully")
+            
+            # 更新进度
+            experiment.progress = 30.0
+            db.commit()
             
             # 动态加载模型
             logger.info(f"Loading model {model_config['class']}...")
@@ -65,15 +79,27 @@ async def train_model_task(experiment_id: int, config: dict, db):
             model = model_class(**model_config.get('kwargs', {}))
             logger.info(f"Model {model_config['class']} loaded successfully")
             
+            # 更新进度
+            experiment.progress = 40.0
+            db.commit()
+            
             # 训练模型
             logger.info("Starting model training...")
             model.fit(dataset)
             logger.info("Model training completed")
             
+            # 更新进度
+            experiment.progress = 70.0
+            db.commit()
+            
             # 生成预测
             logger.info("Generating predictions...")
             pred = model.predict(dataset)
             logger.info(f"Predictions generated with shape: {pred.shape if hasattr(pred, 'shape') else 'unknown'}")
+            
+            # 更新进度
+            experiment.progress = 80.0
+            db.commit()
             
             # 尝试获取标签数据并计算性能指标
             try:
@@ -146,12 +172,16 @@ async def train_model_task(experiment_id: int, config: dict, db):
             
             # 更新实验结果
             experiment.status = "completed"
+            experiment.end_time = func.now()
+            experiment.progress = 100.0
             experiment.performance = performance
             db.commit()
             
     except Exception as e:
         # 更新实验状态为失败
         experiment.status = "failed"
+        experiment.end_time = func.now()
+        experiment.progress = 0.0
         experiment.error = str(e)
         db.commit()
 

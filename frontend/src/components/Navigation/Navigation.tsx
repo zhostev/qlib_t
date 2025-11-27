@@ -90,29 +90,29 @@ const Navigation: React.FC = () => {
           <ul className="nav-menu">
             <li className="nav-item">
               <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                Dashboard
+                仪表盘
               </NavLink>
             </li>
             <li className="nav-item">
               <NavLink to="/experiments" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                Experiments
+                实验管理
               </NavLink>
             </li>
             <li className="nav-item">
               <NavLink to="/models" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                Models
+                模型管理
               </NavLink>
             </li>
             <li className="nav-item">
               <NavLink to="/configs" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                Configs
+                配置管理
               </NavLink>
             </li>
             {/* Admin menu item - only visible to admins */}
             {userInfo?.role === 'admin' && (
               <li className="nav-item">
                 <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                  Admin
+                  系统管理
                 </NavLink>
               </li>
             )}
@@ -139,8 +139,20 @@ const Navigation: React.FC = () => {
                       )}
                     </div>
                     <div className="dropdown-divider"></div>
+                    {/* Add user management link for admins */}
+                    {userInfo?.role === 'admin' && (
+                      <button 
+                        className="user-management-btn dropdown-btn"
+                        onClick={() => {
+                          setShowUserMenu(false)
+                          navigate('/admin')
+                        }}
+                      >
+                        用户管理
+                      </button>
+                    )}
                     <button className="logout-btn dropdown-btn" onClick={handleLogout}>
-                      Logout
+                      退出登录
                     </button>
                   </div>
                 )}

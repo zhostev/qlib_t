@@ -88,20 +88,20 @@ const Dashboard: React.FC = () => {
       }
     },
     legend: {
-      orient: 'horizontal',
-      bottom: 10,
-      data: ['Created', 'Running', 'Completed', 'Failed'],
-      textStyle: {
-        color: '#666',
-        fontSize: 12
-      },
-      itemWidth: 10,
-      itemHeight: 10,
-      itemGap: 20
-    },
+            orient: 'horizontal',
+            bottom: 10,
+            data: ['已创建', '运行中', '已完成', '失败'],
+            textStyle: {
+              color: '#666',
+              fontSize: 12
+            },
+            itemWidth: 10,
+            itemHeight: 10,
+            itemGap: 20
+          },
     series: [
       {
-        name: 'Experiment Status',
+        name: '实验状态',
         type: 'pie',
         radius: ['45%', '70%'],
         center: ['50%', '45%'],
@@ -132,24 +132,23 @@ const Dashboard: React.FC = () => {
           show: false
         },
         data: [
-          {
-            value: createdExperiments.length,
-            name: 'Created',
+          {value: createdExperiments.length,
+            name: '已创建',
             itemStyle: { color: '#64b5f6' }
           },
           {
             value: runningExperiments.length,
-            name: 'Running',
+            name: '运行中',
             itemStyle: { color: '#81c784' }
           },
           {
             value: completedExperiments.length,
-            name: 'Completed',
+            name: '已完成',
             itemStyle: { color: '#9575cd' }
           },
           {
             value: failedExperiments.length,
-            name: 'Failed',
+            name: '失败',
             itemStyle: { color: '#ef5350' }
           }
         ]
@@ -161,7 +160,7 @@ const Dashboard: React.FC = () => {
     return (
       <div className="container">
         <div className="loading-container">
-          <div className="loading">Loading Dashboard</div>
+          <div className="loading">加载仪表盘</div>
         </div>
       </div>
     )
@@ -170,15 +169,15 @@ const Dashboard: React.FC = () => {
   return (
     <div className="container">
       <div className="dashboard-header">
-        <h1>Dashboard</h1>
-        <p className="dashboard-subtitle">Welcome to QLib Management System</p>
+        <h1>仪表盘</h1>
+        <p className="dashboard-subtitle">欢迎使用QLib管理系统</p>
       </div>
       
       {error && (
         <div className="error-message">
           {error}
           <button className="btn btn-sm btn-secondary" onClick={() => window.location.reload()}>
-            Retry
+            重试
           </button>
         </div>
       )}
@@ -187,7 +186,7 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-icon total-experiments">📊</div>
           <div className="stat-content">
-            <h3 className="stat-title">Total Experiments</h3>
+            <h3 className="stat-title">总实验数</h3>
             <p className="stat-value">{experiments.length}</p>
           </div>
         </div>
@@ -195,7 +194,7 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-icon running-experiments">🚀</div>
           <div className="stat-content">
-            <h3 className="stat-title">Running Experiments</h3>
+            <h3 className="stat-title">运行中实验</h3>
             <p className="stat-value">{runningExperiments.length}</p>
           </div>
         </div>
@@ -203,7 +202,7 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-icon completed-experiments">✅</div>
           <div className="stat-content">
-            <h3 className="stat-title">Completed Experiments</h3>
+            <h3 className="stat-title">已完成实验</h3>
             <p className="stat-value">{completedExperiments.length}</p>
           </div>
         </div>
@@ -211,7 +210,7 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-icon failed-experiments">❌</div>
           <div className="stat-content">
-            <h3 className="stat-title">Failed Experiments</h3>
+            <h3 className="stat-title">失败实验</h3>
             <p className="stat-value">{failedExperiments.length}</p>
           </div>
         </div>
@@ -219,7 +218,7 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-icon total-models">🤖</div>
           <div className="stat-content">
-            <h3 className="stat-title">Total Models</h3>
+            <h3 className="stat-title">总模型数</h3>
             <p className="stat-value">{models.length}</p>
           </div>
         </div>
@@ -229,9 +228,9 @@ const Dashboard: React.FC = () => {
         <div className="chart-section">
           <div className="chart-card">
             <div className="chart-header">
-              <h2 className="chart-title">Experiment Status Distribution</h2>
+              <h2 className="chart-title">实验状态分布</h2>
               <Link to="/experiments" className="view-all-link">
-                View All Experiments
+                查看所有实验
               </Link>
             </div>
             <div className="chart-wrapper">
@@ -246,9 +245,9 @@ const Dashboard: React.FC = () => {
         
         <div className="recent-experiments-section">
           <div className="section-header">
-            <h2>Recent Experiments</h2>
+            <h2>最近实验</h2>
             <Link to="/experiments" className="view-all-link">
-              View All
+              查看全部
             </Link>
           </div>
           
@@ -283,10 +282,10 @@ const Dashboard: React.FC = () => {
           ) : (
             <div className="empty-state">
               <div className="empty-icon">📝</div>
-              <h3>No experiments yet</h3>
-              <p>Start by creating your first experiment</p>
+              <h3>暂无实验</h3>
+              <p>开始创建你的第一个实验</p>
               <Link to="/experiments" className="btn btn-primary">
-                Create Experiment
+                创建实验
               </Link>
             </div>
           )}

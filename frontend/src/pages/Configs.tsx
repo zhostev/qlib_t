@@ -71,7 +71,7 @@ const Configs: React.FC = () => {
   }
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this config?')) {
+    if (window.confirm('确定要删除这个配置吗？')) {
       try {
         await deleteConfig(id)
         setConfigs(configs.filter(config => config.id !== id))
@@ -92,24 +92,24 @@ const Configs: React.FC = () => {
   }
 
   if (loading) {
-    return <div className="container">Loading...</div>
+    return <div className="container">加载中...</div>
   }
 
   return (
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>Configs</h1>
+        <h1>配置管理</h1>
         <button className="btn" onClick={() => setShowForm(true)}>
-          Create Config
+          创建配置
         </button>
       </div>
 
       {showForm && (
         <div className="card">
-          <h2>{editingConfig ? 'Edit Config' : 'Create Config'}</h2>
+          <h2>{editingConfig ? '编辑配置' : '创建配置'}</h2>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="name" className="form-label">Name</label>
+              <label htmlFor="name" className="form-label">名称</label>
               <input
                 type="text"
                 id="name"
@@ -120,7 +120,7 @@ const Configs: React.FC = () => {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="description" className="form-label">Description</label>
+              <label htmlFor="description" className="form-label">描述</label>
               <textarea
                 id="description"
                 value={description}
@@ -130,19 +130,19 @@ const Configs: React.FC = () => {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="type" className="form-label">Type</label>
+              <label htmlFor="type" className="form-label">类型</label>
               <select
                 id="type"
                 value={type}
                 onChange={(e) => setType(e.target.value as ConfigType)}
                 className="form-input"
               >
-                <option value="normal">Normal Config</option>
-                <option value="experiment_template">Experiment Template</option>
+                <option value="normal">普通配置</option>
+                <option value="experiment_template">实验模板</option>
               </select>
             </div>
             <div className="form-group">
-              <label htmlFor="content" className="form-label">Content</label>
+              <label htmlFor="content" className="form-label">内容</label>
               <YAMLEditor
                 value={content}
                 onChange={setContent}
@@ -151,10 +151,10 @@ const Configs: React.FC = () => {
             </div>
             <div className="form-actions">
               <button type="submit" className="btn btn-primary">
-                {editingConfig ? 'Update' : 'Create'}
+                {editingConfig ? '更新' : '创建'}
               </button>
               <button type="button" className="btn btn-secondary" onClick={resetForm}>
-                Cancel
+                取消
               </button>
             </div>
           </form>
@@ -162,18 +162,18 @@ const Configs: React.FC = () => {
       )}
 
       <div className="card">
-        <h2>Config List</h2>
+        <h2>配置列表</h2>
         <div className="configs-list">
           <table className="configs-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Description</th>
-                <th>Created At</th>
-                <th>Updated At</th>
-                <th>Content Preview</th>
-                <th>Actions</th>
+                <th>名称</th>
+                <th>类型</th>
+                <th>描述</th>
+                <th>创建时间</th>
+                <th>更新时间</th>
+                <th>内容预览</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -185,11 +185,11 @@ const Configs: React.FC = () => {
                   </td>
                   <td>
                     <span className={`config-type config-type-${config.type}`}>
-                      {config.type === 'experiment_template' ? 'Experiment Template' : 'Normal Config'}
+                      {config.type === 'experiment_template' ? '实验模板' : '普通配置'}
                     </span>
                   </td>
                   <td className="config-description">
-                    {config.description || 'No description'}
+                    {config.description || '无描述'}
                   </td>
                   <td className="config-date">
                     {new Date(config.created_at).toLocaleString()}
@@ -202,10 +202,10 @@ const Configs: React.FC = () => {
                   </td>
                   <td className="config-actions">
                     <button className="btn btn-sm btn-primary" onClick={() => handleEdit(config)}>
-                      Edit
+                      编辑
                     </button>
                     <button className="btn btn-sm btn-danger" onClick={() => handleDelete(config.id)}>
-                      Delete
+                      删除
                     </button>
                   </td>
                 </tr>

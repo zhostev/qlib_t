@@ -37,7 +37,7 @@ const Models: React.FC = () => {
   }, [])
 
   const handleDeleteModel = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this model?')) {
+    if (window.confirm('确定要删除这个模型吗？')) {
       try {
         await deleteModel(id)
         setModels(models.filter(model => model.id !== id))
@@ -48,24 +48,24 @@ const Models: React.FC = () => {
   }
 
   if (loading) {
-    return <div className="container">Loading...</div>
+    return <div className="container">加载中...</div>
   }
 
   return (
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>Models</h1>
+        <h1>模型管理</h1>
       </div>
 
       <div className="models-list">
         <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)' }}>
           <thead style={{ backgroundColor: '#f5f5f5' }}>
             <tr>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Name</th>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Version</th>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Experiment ID</th>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Created At</th>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Actions</th>
+              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>名称</th>
+              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>版本</th>
+              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>实验ID</th>
+              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>创建时间</th>
+              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -80,13 +80,13 @@ const Models: React.FC = () => {
                     style={{ marginRight: '10px', padding: '5px 10px', backgroundColor: '#646cff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                     onClick={() => navigate(`/models/${model.id}`)}
                   >
-                    View
+                    查看
                   </button>
                   <button 
                     style={{ padding: '5px 10px', backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                     onClick={() => handleDeleteModel(model.id)}
                   >
-                    Delete
+                    删除
                   </button>
                 </td>
               </tr>

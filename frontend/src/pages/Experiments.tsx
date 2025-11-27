@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getExperiments, createExperiment, runExperiment, deleteExperiment } from '../services/experiments'
 import { getConfigs } from '../services/configs'
+import { getBenchmarks } from '../services/benchmarks'
 import type { ConfigType } from '../services/configs'
 import YAMLEditor from '../components/YAMLEditor/YAMLEditor'
 import ReactECharts from 'echarts-for-react'
@@ -15,6 +16,9 @@ interface Experiment {
   status: string
   created_at: string
   updated_at: string
+  start_time?: string
+  end_time?: string
+  progress?: number
   performance?: any
   error?: string
 }
@@ -32,11 +36,13 @@ interface Config {
 const Experiments: React.FC = () => {
   const [experiments, setExperiments] = useState<Experiment[]>([])
   const [configs, setConfigs] = useState<Config[]>([])
+  const [benchmarks, setBenchmarks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [selectedConfig, setSelectedConfig] = useState<number | null>(null)
+  const [selectedBenchmark, setSelectedBenchmark] = useState<string | null>(null)
   const [yamlContent, setYamlContent] = useState('')
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -63,6 +69,18 @@ const Experiments: React.FC = () => {
         console.error('Failed to fetch configs:', err)
         // Set empty array on error
         setConfigs([])
+      }
+    }
+
+    // Fetch benchmarks only once initially
+    const fetchBenchmarks = async () => {
+      try {
+        const benchmarksData = await getBenchmarks()
+        setBenchmarks(benchmarksData)
+      } catch (err) {
+        console.error('Failed to fetch benchmarks:', err)
+        // Set empty array on error
+        setBenchmarks([])
       } finally {
         setLoading(false)
       }
@@ -70,6 +88,7 @@ const Experiments: React.FC = () => {
 
     fetchData()
     fetchConfigs()
+    fetchBenchmarks()
 
     // Set up interval to refresh experiments every 5 seconds
     const interval = setInterval(fetchData, 5000)
@@ -236,18 +255,18 @@ const Experiments: React.FC = () => {
   return (
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>Experiments</h1>
+        <h1>实验管理</h1>
         <button className="btn" onClick={() => setShowForm(true)}>
-          Create Experiment
+          创建实验
         </button>
       </div>
 
       {showForm && (
         <div style={{ marginBottom: '20px', padding: '20px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)' }}>
-          <h2>Create Experiment</h2>
+          <h2>创建实验</h2>
           <form onSubmit={handleSubmit}>
             <div className="form-group" style={{ marginBottom: '15px' }}>
-              <label htmlFor="name">Name</label>
+              <label htmlFor="name">名称</label>
               <input
                 type="text"
                 id="name"
@@ -257,7 +276,7 @@ const Experiments: React.FC = () => {
               />
             </div>
             <div className="form-group" style={{ marginBottom: '15px' }}>
-              <label htmlFor="description">Description</label>
+              <label htmlFor="description">描述</label>
               <textarea
                 id="description"
                 value={description}
@@ -266,13 +285,13 @@ const Experiments: React.FC = () => {
               />
             </div>
             <div className="form-group" style={{ marginBottom: '15px' }}>
-              <label htmlFor="config">Select Config Template</label>
+              <label htmlFor="config">选择配置模板</label>
               <select
                 id="config"
                 value={selectedConfig || ''}
                 onChange={handleConfigChange}
               >
-                <option value="">-- Select Config --</option>
+                <option value="">-- 选择配置 --</option>
                 {configs.map(config => (
                   <option key={config.id} value={config.id}>
                     {config.name}
@@ -281,7 +300,7 @@ const Experiments: React.FC = () => {
               </select>
             </div>
             <div className="form-group" style={{ marginBottom: '15px' }}>
-              <label htmlFor="yamlContent">YAML Config</label>
+              <label htmlFor="yamlContent">YAML配置</label>
               <YAMLEditor
                 value={yamlContent}
                 onChange={setYamlContent}
@@ -290,10 +309,10 @@ const Experiments: React.FC = () => {
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button type="submit" className="btn">
-                Create
+                创建
               </button>
               <button type="button" className="btn" onClick={resetForm}>
-                Cancel
+                取消
               </button>
             </div>
           </form>
@@ -314,18 +333,42 @@ const Experiments: React.FC = () => {
             
             <div className="experiment-meta">
               <div className="meta-item">
-                <span className="meta-label">Created:</span>
+                <span className="meta-label">创建时间:</span>
                 <span className="meta-value">{new Date(experiment.created_at).toLocaleString()}</span>
               </div>
               <div className="meta-item">
-                <span className="meta-label">Updated:</span>
+                <span className="meta-label">更新时间:</span>
                 <span className="meta-value">{new Date(experiment.updated_at).toLocaleString()}</span>
               </div>
+              {experiment.start_time && (
+                <div className="meta-item">
+                  <span className="meta-label">开始时间:</span>
+                  <span className="meta-value">{new Date(experiment.start_time).toLocaleString()}</span>
+                </div>
+              )}
+              {experiment.end_time && (
+                <div className="meta-item">
+                  <span className="meta-label">结束时间:</span>
+                  <span className="meta-value">{new Date(experiment.end_time).toLocaleString()}</span>
+                </div>
+              )}
+              {experiment.progress !== undefined && (
+                <div className="meta-item full-width">
+                  <span className="meta-label">进度:</span>
+                  <div className="progress-bar-container">
+                    <div 
+                      className="progress-bar" 
+                      style={{ width: `${experiment.progress}%` }}
+                    ></div>
+                    <span className="progress-text">{experiment.progress.toFixed(0)}%</span>
+                  </div>
+                </div>
+              )}
             </div>
             
             {experiment.performance && (
               <div className="experiment-performance">
-                <h4>Performance Metrics</h4>
+                <h4>性能指标</h4>
                 <div className="performance-metrics">
                   {experiment.performance.total_return !== undefined && (
                     <div className="metric-item">
@@ -377,24 +420,24 @@ const Experiments: React.FC = () => {
             
             <div className="experiment-actions">
               <button 
-                className="action-btn view-btn"
-                onClick={() => navigate(`/experiments/${experiment.id}`)}
-              >
-                View Details
-              </button>
-              {(experiment.status === 'created' || experiment.status === 'completed' || experiment.status === 'failed') && (
+                  className="action-btn view-btn"
+                  onClick={() => navigate(`/experiments/${experiment.id}`)}
+                >
+                  查看详情
+                </button>
+                {(experiment.status === 'created' || experiment.status === 'completed' || experiment.status === 'failed') && (
                 <button 
                   className="action-btn run-btn"
                   onClick={() => handleRunExperiment(experiment.id)}
                 >
-                  {experiment.status === 'created' ? 'Run Experiment' : 'Re-run'}
+                  {experiment.status === 'created' ? '运行实验' : '重新运行'}
                 </button>
               )}
               <button 
                 className="action-btn delete-btn"
                 onClick={() => handleDeleteExperiment(experiment.id)}
               >
-                Delete
+                删除
               </button>
             </div>
           </div>
