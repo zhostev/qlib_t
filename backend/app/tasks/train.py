@@ -6,6 +6,7 @@ import numpy as np
 import os
 import logging
 from datetime import datetime
+from sqlalchemy.sql import func
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
