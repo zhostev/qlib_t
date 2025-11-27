@@ -6,12 +6,12 @@ from app.models.user import User
 from app.schemas.config import ConfigCreate, ConfigResponse, ConfigUpdate
 from app.services.config import create_config, get_config, get_configs, update_config, delete_config
 from app.yaml.parser import QLibYAMLParser
-from app.api.deps import get_current_active_user
+from app.api.deps import get_current_active_user, get_current_developer_user
 
 router = APIRouter()
 
 @router.post("/", response_model=ConfigResponse)
-def create_new_config(config: ConfigCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+def create_new_config(config: ConfigCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_developer_user)):
     # Validate YAML configuration
     try:
         parsed_config = QLibYAMLParser.parse_yaml(config.content)
@@ -31,7 +31,7 @@ def read_config(config_id: int, db: Session = Depends(get_db), current_user: Use
     return get_config(db=db, config_id=config_id)
 
 @router.put("/{config_id}", response_model=ConfigResponse)
-def update_existing_config(config_id: int, config: ConfigUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+def update_existing_config(config_id: int, config: ConfigUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_developer_user)):
     # Validate YAML configuration if content is provided
     if config.content:
         try:
@@ -44,5 +44,5 @@ def update_existing_config(config_id: int, config: ConfigUpdate, db: Session = D
     return update_config(db=db, config_id=config_id, config=config)
 
 @router.delete("/{config_id}")
-def delete_existing_config(config_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+def delete_existing_config(config_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_developer_user)):
     return delete_config(db=db, config_id=config_id)

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getExperiments, createExperiment, runExperiment, deleteExperiment } from '../services/experiments'
 import { getConfigs } from '../services/configs'
+import type { ConfigType } from '../services/configs'
 import YAMLEditor from '../components/YAMLEditor/YAMLEditor'
+import ReactECharts from 'echarts-for-react'
 import * as yaml from 'js-yaml'
 
 interface Experiment {
@@ -22,6 +24,7 @@ interface Config {
   name: string
   description: string
   content: string
+  type: ConfigType
   created_at: string
   updated_at: string
 }
@@ -38,19 +41,27 @@ const Experiments: React.FC = () => {
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
+  // Fetch data initially and then every 5 seconds for real-time updates
   useEffect(() => {
     const fetchData = async () => {
       try {
         const experimentsData = await getExperiments()
-        const configsData = await getConfigs()
         // Ensure experimentsData is an array
         setExperiments(Array.isArray(experimentsData) ? experimentsData : [])
+      } catch (err) {
+        console.error('Failed to fetch experiments:', err)
+      }
+    }
+
+    // Fetch configs only once initially
+    const fetchConfigs = async () => {
+      try {
+        const configsData = await getConfigs()
         // Ensure configsData is an array
         setConfigs(Array.isArray(configsData) ? configsData : [])
       } catch (err) {
-        console.error('Failed to fetch data:', err)
-        // Set empty arrays on error
-        setExperiments([])
+        console.error('Failed to fetch configs:', err)
+        // Set empty array on error
         setConfigs([])
       } finally {
         setLoading(false)
@@ -58,6 +69,13 @@ const Experiments: React.FC = () => {
     }
 
     fetchData()
+    fetchConfigs()
+
+    // Set up interval to refresh experiments every 5 seconds
+    const interval = setInterval(fetchData, 5000)
+
+    // Clean up interval on component unmount
+    return () => clearInterval(interval)
   }, [])
 
   const handleConfigChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -67,6 +85,11 @@ const Experiments: React.FC = () => {
     const config = configs.find(c => c.id === configId)
     if (config) {
       setYamlContent(config.content)
+      // 如果是实验模板，自动填充名称和描述
+      if (config.type === 'experiment_template') {
+        setName(config.name.replace(' Template', ''))
+        setDescription(config.description || '')
+      }
     }
   }
 
@@ -129,6 +152,81 @@ const Experiments: React.FC = () => {
     setYamlContent('')
     setShowForm(false)
     setError('')
+  }
+
+  // Prepare chart data if performance is available
+  const getChartOption = (performance: any) => {
+    if (!performance) {
+      return {
+        title: {
+          text: 'Performance Chart',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        xAxis: {
+          type: 'category',
+          data: []
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [
+          {
+            data: [],
+            type: 'line'
+          }
+        ]
+      }
+    }
+
+    const cumulativeReturns = performance.cumulative_returns
+    const dates = Object.keys(cumulativeReturns)
+    const values = Object.values(cumulativeReturns) as number[]
+
+    return {
+      title: {
+        text: 'Cumulative Returns',
+        left: 'center',
+        textStyle: {
+          fontSize: 14
+        }
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          const date = params[0].axisValue
+          const value = params[0].value
+          return `${date}<br/>Cumulative Return: ${(value * 100).toFixed(2)}%`
+        }
+      },
+      xAxis: {
+        type: 'category',
+        data: dates,
+        axisLabel: {
+          rotate: 45,
+          fontSize: 10
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: {
+          formatter: '{value}%',
+          fontSize: 10
+        }
+      },
+      series: [
+        {
+          data: values.map(v => (v * 100).toFixed(2)),
+          type: 'line',
+          smooth: true,
+          itemStyle: {
+            color: '#646cff'
+          }
+        }
+      ]
+    }
   }
 
   if (loading) {
@@ -227,16 +325,45 @@ const Experiments: React.FC = () => {
             
             {experiment.performance && (
               <div className="experiment-performance">
-                <h4>Performance</h4>
+                <h4>Performance Metrics</h4>
                 <div className="performance-metrics">
-                  {Object.entries(experiment.performance).map(([key, value]) => (
-                    <div key={key} className="metric-item">
-                      <span className="metric-key">{key}:</span>
-                      <span className="metric-value">
-                        {typeof value === 'number' ? value.toFixed(4) : String(value)}
+                  {experiment.performance.total_return !== undefined && (
+                    <div className="metric-item">
+                      <span className="metric-key">Total Return:</span>
+                      <span className={`metric-value ${experiment.performance.total_return >= 0 ? 'positive' : 'negative'}`}>
+                        {experiment.performance.total_return.toFixed(4)}
                       </span>
                     </div>
-                  ))}
+                  )}
+                  {experiment.performance.annual_return !== undefined && (
+                    <div className="metric-item">
+                      <span className="metric-key">Annual Return:</span>
+                      <span className={`metric-value ${experiment.performance.annual_return >= 0 ? 'positive' : 'negative'}`}>
+                        {experiment.performance.annual_return.toFixed(4)}
+                      </span>
+                    </div>
+                  )}
+                  {experiment.performance.sharpe_ratio !== undefined && (
+                    <div className="metric-item">
+                      <span className="metric-key">Sharpe Ratio:</span>
+                      <span className={`metric-value ${experiment.performance.sharpe_ratio >= 0 ? 'positive' : 'negative'}`}>
+                        {experiment.performance.sharpe_ratio.toFixed(4)}
+                      </span>
+                    </div>
+                  )}
+                  {experiment.performance.max_drawdown !== undefined && (
+                    <div className="metric-item">
+                      <span className="metric-key">Max Drawdown:</span>
+                      <span className="metric-value">
+                        {experiment.performance.max_drawdown.toFixed(4)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Performance Chart */}
+                <div className="performance-chart" style={{ marginTop: '20px', height: '300px' }}>
+                  <ReactECharts option={getChartOption(experiment.performance)} style={{ height: '100%' }} />
                 </div>
               </div>
             )}
@@ -255,12 +382,12 @@ const Experiments: React.FC = () => {
               >
                 View Details
               </button>
-              {experiment.status === 'created' && (
+              {(experiment.status === 'created' || experiment.status === 'completed' || experiment.status === 'failed') && (
                 <button 
                   className="action-btn run-btn"
                   onClick={() => handleRunExperiment(experiment.id)}
                 >
-                  Run Experiment
+                  {experiment.status === 'created' ? 'Run Experiment' : 'Re-run'}
                 </button>
               )}
               <button 

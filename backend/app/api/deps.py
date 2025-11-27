@@ -36,4 +36,29 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
 
 def get_current_active_user(current_user: User = Depends(get_current_user)):
     """获取当前活跃用户"""
+    if current_user.disabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user"
+        )
+    return current_user
+
+
+def get_current_admin_user(current_user: User = Depends(get_current_active_user)):
+    """获取当前管理员用户"""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+    return current_user
+
+
+def get_current_developer_user(current_user: User = Depends(get_current_active_user)):
+    """获取当前开发者用户（管理员或开发者）"""
+    if current_user.role not in ["admin", "developer"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
     return current_user

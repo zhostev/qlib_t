@@ -5,7 +5,7 @@ from app.models.model_version import ModelVersion
 from app.models.user import User
 from app.schemas.model_version import ModelVersionResponse
 from app.services.model_version import get_model_version, get_model_versions, delete_model_version
-from app.api.deps import get_current_active_user
+from app.api.deps import get_current_active_user, get_current_developer_user
 
 router = APIRouter()
 
@@ -18,7 +18,7 @@ def read_model_version(model_id: int, db: Session = Depends(get_db), current_use
     return get_model_version(db=db, model_id=model_id)
 
 @router.delete("/{model_id}")
-def delete_existing_model(model_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+def delete_existing_model(model_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_developer_user)):
     return delete_model_version(db=db, model_id=model_id)
 
 @router.get("/experiment/{experiment_id}", response_model=list[ModelVersionResponse])

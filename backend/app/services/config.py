@@ -7,7 +7,8 @@ def create_config(db: Session, config: ConfigCreate):
     db_config = Config(
         name=config.name,
         description=config.description,
-        content=config.content
+        content=config.content,
+        type=config.type
     )
     db.add(db_config)
     db.commit()

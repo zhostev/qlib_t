@@ -3,11 +3,14 @@ import { getToken } from './auth'
 
 const API_URL = '/api/configs/'
 
+export type ConfigType = 'experiment_template' | 'normal'
+
 interface Config {
   id: number
   name: string
   description: string
   content: string
+  type: ConfigType
   created_at: string
   updated_at: string
 }
@@ -16,6 +19,7 @@ interface ConfigCreate {
   name: string
   description: string
   content: string
+  type?: ConfigType
 }
 
 const axiosInstance = axios.create({

@@ -108,11 +108,14 @@ const Navigation: React.FC = () => {
                 Configs
               </NavLink>
             </li>
-            <li className="nav-item">
-              <NavLink to="/profit-loss" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                收益情况
-              </NavLink>
-            </li>
+            {/* Admin menu item - only visible to admins */}
+            {userInfo?.role === 'admin' && (
+              <li className="nav-item">
+                <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                  Admin
+                </NavLink>
+              </li>
+            )}
           </ul>
           <div className="nav-user">
             {user && (

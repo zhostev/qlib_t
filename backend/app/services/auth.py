@@ -34,7 +34,9 @@ def authenticate_user(db: Session, username: str, password: str):
         # Create admin user if it doesn't exist
         user = get_user(db, username)
         if not user:
-            user = User(username=username, password_hash="$2b$12$dummyhashfordevelopment")
+            # Use get_password_hash to generate a valid bcrypt hash
+            hashed_password = get_password_hash(password)
+            user = User(username=username, password_hash=hashed_password)
             db.add(user)
             db.commit()
             db.refresh(user)
