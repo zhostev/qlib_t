@@ -36,10 +36,16 @@ def authenticate_user(db: Session, username: str, password: str):
         if not user:
             # Use get_password_hash to generate a valid bcrypt hash
             hashed_password = get_password_hash(password)
-            user = User(username=username, password_hash=hashed_password)
+            user = User(username=username, password_hash=hashed_password, role="admin")
             db.add(user)
             db.commit()
             db.refresh(user)
+        else:
+            # Ensure admin user has admin role
+            if user.role != "admin":
+                user.role = "admin"
+                db.commit()
+                db.refresh(user)
         return user
     
     # Normal authentication flow for other users

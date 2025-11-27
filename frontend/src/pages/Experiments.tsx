@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getExperiments, createExperiment, runExperiment, deleteExperiment } from '../services/experiments'
 import { getConfigs } from '../services/configs'
 import { getBenchmarks } from '../services/benchmarks'
+import { getUserInfo } from '../services/auth'
 import type { ConfigType } from '../services/configs'
 import YAMLEditor from '../components/YAMLEditor/YAMLEditor'
 import ReactECharts from 'echarts-for-react'
@@ -45,7 +46,47 @@ const Experiments: React.FC = () => {
   const [selectedBenchmark, setSelectedBenchmark] = useState<string | null>(null)
   const [yamlContent, setYamlContent] = useState('')
   const [error, setError] = useState('')
+  const [userInfo, setUserInfo] = useState<any>(null)
   const navigate = useNavigate()
+  
+  // Get user info from localStorage and API
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        // First try to get from API
+        const info = await getUserInfo()
+        if (info) {
+          setUserInfo(info)
+          localStorage.setItem('userInfo', JSON.stringify(info))
+        } else {
+          // Fallback to localStorage
+          const storedUserInfo = localStorage.getItem('userInfo')
+          if (storedUserInfo) {
+            setUserInfo(JSON.parse(storedUserInfo))
+          }
+        }
+      } catch (error) {
+        console.error('Failed to get user info:', error)
+        // Fallback to localStorage
+        const storedUserInfo = localStorage.getItem('userInfo')
+        if (storedUserInfo) {
+          setUserInfo(JSON.parse(storedUserInfo))
+        }
+      }
+    }
+    
+    fetchUserInfo()
+  }, [])
+  
+  // For now, always show the create experiment button
+  // The actual permission check will be handled by the backend
+  const canCreateExperiments = true
+  
+  // Debug: Log user info and permission status
+  useEffect(() => {
+    console.log('User Info:', userInfo)
+    console.log('Can Create Experiments:', canCreateExperiments)
+  }, [userInfo, canCreateExperiments])
 
   // Fetch data initially and then every 5 seconds for real-time updates
   useEffect(() => {
@@ -149,9 +190,11 @@ const Experiments: React.FC = () => {
       resetForm()
     } catch (err: any) {
       if (err.name === 'YAMLException') {
-        setError('Invalid YAML format')
+        setError('无效的YAML格式')
+      } else if (err.response?.status === 403) {
+        setError('您没有创建实验的权限，请联系管理员')
       } else {
-        setError(err.response?.data?.detail || 'Failed to create experiment')
+        setError(err.response?.data?.detail || '创建实验失败')
       }
     }
   }
@@ -163,18 +206,28 @@ const Experiments: React.FC = () => {
       // Refresh experiments list
       const experimentsData = await getExperiments()
       setExperiments(experimentsData)
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to run experiment:', err)
+      if (err.response?.status === 403) {
+        alert('您没有运行实验的权限，请联系管理员')
+      } else {
+        alert('运行实验失败，请稍后重试')
+      }
     }
   }
 
   const handleDeleteExperiment = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this experiment?')) {
+    if (window.confirm('确定要删除这个实验吗？')) {
       try {
         await deleteExperiment(id)
         setExperiments(experiments.filter(exp => exp.id !== id))
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to delete experiment:', err)
+        if (err.response?.status === 403) {
+          alert('您没有删除实验的权限，请联系管理员')
+        } else {
+          alert('删除实验失败，请稍后重试')
+        }
       }
     }
   }
@@ -271,9 +324,11 @@ const Experiments: React.FC = () => {
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1>实验管理</h1>
-        <button className="btn" onClick={() => setShowForm(true)}>
-          创建实验
-        </button>
+        {canCreateExperiments && (
+          <button className="btn" onClick={() => setShowForm(true)}>
+            创建实验
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -456,7 +511,7 @@ const Experiments: React.FC = () => {
                 >
                   查看详情
                 </button>
-                {(experiment.status === 'created' || experiment.status === 'completed' || experiment.status === 'failed') && (
+                {canCreateExperiments && (experiment.status === 'created' || experiment.status === 'completed' || experiment.status === 'failed') && (
                 <button 
                   className="action-btn run-btn"
                   onClick={() => handleRunExperiment(experiment.id)}
@@ -464,12 +519,14 @@ const Experiments: React.FC = () => {
                   {experiment.status === 'created' ? '运行实验' : '重新运行'}
                 </button>
               )}
+              {canCreateExperiments && (
               <button 
                 className="action-btn delete-btn"
                 onClick={() => handleDeleteExperiment(experiment.id)}
               >
                 删除
               </button>
+              )}
             </div>
           </div>
         ))}

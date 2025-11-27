@@ -27,11 +27,17 @@ admin_user = db.query(User).filter(User.username == "admin").first()
 if not admin_user:
     # Create admin user with simple password that won't cause bcrypt issues
     # For development purposes, we'll use a simple password and handle it specially in auth.py
-    admin_user = User(username="admin", password_hash="$2b$12$dummyhashfordevelopment")
+    admin_user = User(username="admin", password_hash="$2b$12$dummyhashfordevelopment", role="admin")
     db.add(admin_user)
     db.commit()
     print("Admin user created successfully")
 else:
-    print("Admin user already exists")
+    # Update existing admin user's role to admin if it's not already
+    if admin_user.role != "admin":
+        admin_user.role = "admin"
+        db.commit()
+        print("Admin user role updated to admin")
+    else:
+        print("Admin user already exists with admin role")
 
 db.close()

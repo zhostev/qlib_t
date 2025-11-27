@@ -122,8 +122,14 @@ const Navigation: React.FC = () => {
               <div className="user-info" onClick={(e) => e.stopPropagation()}>
                 <div 
                   className="user-avatar"
-                  onClick={toggleUserMenu}
-                  title="Click to view user info"
+                  onClick={(e) => {
+                    if (userInfo?.role === 'admin') {
+                      navigate('/admin')
+                    } else {
+                      toggleUserMenu(e)
+                    }
+                  }}
+                  title={userInfo?.role === 'admin' ? "Click to go to admin page" : "Click to view user info"}
                 >
                   {getInitials(user)}
                 </div>

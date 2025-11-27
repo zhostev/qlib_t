@@ -167,6 +167,98 @@
   font-size: 14px;
   transition: all 0.3s ease;
   background-color: white;
+  color: #333;
+}
+
+/* 优化select元素的样式 */
+.form-group select {
+  /* 添加下拉箭头图标 */
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+  background-color: white;
+  color: #333;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+/* 优化select元素在不同状态下的样式 */
+.form-group select:focus {
+  outline: none;
+  border-color: #646cff;
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.1);
+  background-color: #f9fafb;
+}
+
+/* 优化select元素在hover状态下的样式 */
+.form-group select:hover {
+  border-color: #646cff;
+  background-color: #f9fafb;
+}
+
+/* 优化option元素的样式 */
+.form-group select option {
+  background-color: white;
+  color: #333;
+  padding: 12px 16px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+/* 优化option元素在hover状态下的样式 */
+.form-group select option:hover {
+  background-color: #f0f4ff;
+  color: #333;
+}
+
+/* 优化option元素在选中状态下的样式 */
+.form-group select option:checked {
+  background-color: #646cff;
+  color: white;
+  font-weight: 500;
+}
+
+/* 优化option元素在聚焦状态下的样式 */
+.form-group select option:focus {
+  background-color: #646cff;
+  color: white;
+}
+
+/* 为所有select元素添加基础样式，确保一致性 */
+select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: white;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+select:focus {
+  outline: none;
+  border-color: #646cff;
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.1);
+  background-color: #f9fafb;
+}
+
+select option {
+  background-color: white;
+  color: #333;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+select option:checked {
+  background-color: #646cff;
+  color: white;
+  font-weight: 500;
 }
 
 .form-group input:focus,

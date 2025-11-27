@@ -34,6 +34,16 @@ export const login = async (username: string, password: string): Promise<void> =
   if (response.data.access_token) {
     localStorage.setItem('token', response.data.access_token)
     localStorage.setItem('username', username) // 存储用户名到localStorage
+    
+    // 获取并存储用户信息
+    try {
+      const userInfo = await getUserInfo()
+      if (userInfo) {
+        localStorage.setItem('userInfo', JSON.stringify(userInfo))
+      }
+    } catch (error) {
+      console.error('Failed to get user info after login:', error)
+    }
   }
 }
 
