@@ -14,12 +14,7 @@ interface FactorGroup {
   updated_at: string
 }
 
-interface FactorGroupCreate {
-  name: string
-  description: string
-  factor_count?: number
-  status?: string
-}
+
 
 // Factor interfaces
 interface Factor {

@@ -8,7 +8,7 @@ Base.metadata.create_all(bind=engine)
 
 # Create FastAPI application
 app = FastAPI(
-    title="QLib Management API",
+    title="QLib AI API",
     description="API for managing QLib experiments and models",
     version="1.0.0",
 )
@@ -16,7 +16,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allow frontend origin
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Allow frontend origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,4 +28,4 @@ app.include_router(api_router, prefix="/api")
 # Root endpoint
 @app.get("/")
 def root():
-    return {"message": "Welcome to QLib Management API"}
+    return {"message": "Welcome to QLib AI API"}

@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { getUserInfo, getUsers, createUser, updateUser, deleteUser } from '../services/auth'
-
-interface User {
-  id: number
-  username: string
-  email?: string
-  full_name?: string
-  role: string
-  disabled: boolean
-  created_at: string
-  updated_at?: string
-  last_login?: string
-}
+import { getUsers, createUser, updateUser, deleteUser } from '../services/auth'
+import type { UserInfo } from '../services/auth'
 
 interface UserFormData {
   username: string
@@ -24,12 +12,18 @@ interface UserFormData {
 }
 
 const Admin: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<UserInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [currentUser, setCurrentUser] = useState<UserInfo | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortField, setSortField] = useState<keyof UserInfo>('id')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [usersPerPage] = useState(10)
+  const [activeTab, setActiveTab] = useState<'users' | 'configs' | 'logs' | 'monitoring'>('users')
   const [formData, setFormData] = useState<UserFormData>({
     username: '',
     email: '',
@@ -38,7 +32,6 @@ const Admin: React.FC = () => {
     role: 'viewer',
     disabled: false
   })
-  const navigate = useNavigate()
 
   useEffect(() => {
     fetchUsers()
@@ -58,7 +51,9 @@ const Admin: React.FC = () => {
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target
+    const target = e.target as HTMLInputElement;
+    const { name, value, type } = target;
+    const checked = target.checked;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -80,7 +75,7 @@ const Admin: React.FC = () => {
 
   const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentUser) return
+    if (!currentUser || !currentUser.id) return
     
     try {
       await updateUser(currentUser.id, formData)
@@ -105,17 +100,26 @@ const Admin: React.FC = () => {
     }
   }
 
-  const openEditModal = (user: User) => {
+  const openEditModal = (user: UserInfo) => {
     setCurrentUser(user)
     setFormData({
       username: user.username,
       email: user.email || '',
       full_name: user.full_name || '',
       password: '',
-      role: user.role,
-      disabled: user.disabled
+      role: user.role || 'viewer',
+      disabled: user.disabled || false
     })
     setShowEditModal(true)
+  }
+
+  const handleSort = (field: keyof UserInfo) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field as keyof UserInfo)
+      setSortDirection('asc')
+    }
   }
 
   const resetForm = () => {
@@ -134,9 +138,62 @@ const Admin: React.FC = () => {
     return <div className="loading">Loading...</div>
   }
 
+  // 过滤和排序用户
+  const filteredAndSortedUsers = users
+    .filter(user => {
+      const searchLower = searchTerm.toLowerCase()
+      return (
+        user.username.toLowerCase().includes(searchLower) ||
+        (user.email && user.email.toLowerCase().includes(searchLower)) ||
+        (user.full_name && user.full_name.toLowerCase().includes(searchLower))
+      )
+    })
+    .sort((a, b) => {
+      const aVal = a[sortField]
+      const bVal = b[sortField]
+      
+      if (aVal === undefined || aVal === null) return sortDirection === 'asc' ? -1 : 1
+      if (bVal === undefined || bVal === null) return sortDirection === 'asc' ? 1 : -1
+      
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+      } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
+      } else if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
+        return sortDirection === 'asc' ? (aVal === bVal ? 0 : aVal ? 1 : -1) : (aVal === bVal ? 0 : aVal ? -1 : 1)
+      } else {
+        return 0
+      }
+    })
+
+  // 分页逻辑
+  const indexOfLastUser = currentPage * usersPerPage
+  const indexOfFirstUser = indexOfLastUser - usersPerPage
+  const currentUsers = filteredAndSortedUsers.slice(indexOfFirstUser, indexOfLastUser)
+  const totalPages = Math.ceil(filteredAndSortedUsers.length / usersPerPage)
+
+  // 分页控制函数
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber)
+  }
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
   return (
-    <div className="admin-page">
-      <h1>系统管理</h1>
+    <div className="container">
+      <div className="page-header">
+        <h1>系统管理</h1>
+      </div>
       
       {error && (
         <div className="error-message">
@@ -145,57 +202,262 @@ const Admin: React.FC = () => {
         </div>
       )}
 
-      <div className="admin-actions">
-        <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-          添加用户
+      {/* 标签页导航 */}
+      <div className="admin-tabs">
+        <button 
+          className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          用户管理
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'configs' ? 'active' : ''}`}
+          onClick={() => setActiveTab('configs')}
+        >
+          系统配置
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
+          onClick={() => setActiveTab('logs')}
+        >
+          日志管理
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'monitoring' ? 'active' : ''}`}
+          onClick={() => setActiveTab('monitoring')}
+        >
+          系统监控
         </button>
       </div>
 
-      <div className="users-table-container">
-        <table className="users-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>用户名</th>
-              <th>邮箱</th>
-              <th>全名</th>
-              <th>角色</th>
-              <th>状态</th>
-              <th>创建时间</th>
-              <th>最后登录</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <tr key={user.id}>
-                <td>{user.id}</td>
-                <td>{user.username}</td>
-                <td>{user.email || '-'}</td>
-                <td>{user.full_name || '-'}</td>
-                <td>{user.role}</td>
-                <td>{user.disabled ? '禁用' : '活跃'}</td>
-                <td>{new Date(user.created_at).toLocaleDateString()}</td>
-                <td>{user.last_login ? new Date(user.last_login).toLocaleString() : '-'}</td>
-                <td>
-                  <button 
-                    className="btn btn-sm btn-primary"
-                    onClick={() => openEditModal(user)}
-                  >
-                    编辑
-                  </button>
-                  <button 
-                    className="btn btn-sm btn-danger"
-                    onClick={() => handleDeleteUser(user.id)}
-                  >
-                    删除
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* 用户管理标签页内容 */}
+      {activeTab === 'users' && (
+        <>
+          <div className="admin-actions">
+            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+              添加用户
+            </button>
+          </div>
+
+          <div className="search-filter">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="搜索用户名、邮箱或全名..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setCurrentPage(1) // 搜索时重置到第一页
+              }}
+            />
+          </div>
+
+          <div className="card">
+            <table className="users-table">
+              <thead>
+                <tr>
+                  <th onClick={() => handleSort('id')} className="sortable">
+                    ID {sortField === 'id' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th onClick={() => handleSort('username')} className="sortable">
+                    用户名 {sortField === 'username' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th onClick={() => handleSort('email')} className="sortable">
+                    邮箱 {sortField === 'email' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th onClick={() => handleSort('full_name')} className="sortable">
+                    全名 {sortField === 'full_name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th onClick={() => handleSort('role')} className="sortable">
+                    角色 {sortField === 'role' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th onClick={() => handleSort('disabled')} className="sortable">
+                    状态 {sortField === 'disabled' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th onClick={() => handleSort('created_at')} className="sortable">
+                    创建时间 {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th onClick={() => handleSort('last_login')} className="sortable">
+                    最后登录 {sortField === 'last_login' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentUsers.length > 0 ? (
+                  currentUsers.map(user => (
+                    <tr key={user.id}>
+                      <td>{user.id}</td>
+                      <td>{user.username}</td>
+                      <td>{user.email || '-'}</td>
+                      <td>{user.full_name || '-'}</td>
+                      <td>{user.role}</td>
+                      <td>
+                        <span className={user.disabled ? 'status-disabled' : 'status-active'}>
+                          {user.disabled ? '禁用' : '活跃'}
+                        </span>
+                      </td>
+                      <td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}</td>
+                      <td>{user.last_login ? new Date(user.last_login).toLocaleString() : '-'}</td>
+                      <td>
+                        <button 
+                          className="btn btn-sm btn-primary"
+                          onClick={() => openEditModal(user)}
+                        >
+                          编辑
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-danger"
+                          onClick={() => user.id && handleDeleteUser(user.id)}
+                        >
+                          删除
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      没有找到匹配的用户
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 分页控件 */}
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button 
+                onClick={handlePrevPage} 
+                disabled={currentPage === 1}
+              >
+                上一页
+              </button>
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNumber => (
+                <button
+                  key={pageNumber}
+                  onClick={() => handlePageChange(pageNumber)}
+                  className={currentPage === pageNumber ? 'active' : ''}
+                >
+                  {pageNumber}
+                </button>
+              ))}
+              
+              <button 
+                onClick={handleNextPage} 
+                disabled={currentPage === totalPages}
+              >
+                下一页
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 系统配置标签页内容 */}
+      {activeTab === 'configs' && (
+        <div className="card">
+          <h2>系统配置</h2>
+          <div className="configs-content">
+            <p>系统配置管理功能正在开发中...</p>
+            <div className="configs-placeholder">
+              <div className="config-item">
+                <h3>API配置</h3>
+                <p>管理系统API的相关配置</p>
+              </div>
+              <div className="config-item">
+                <h3>数据库配置</h3>
+                <p>管理数据库连接和设置</p>
+              </div>
+              <div className="config-item">
+                <h3>安全配置</h3>
+                <p>管理系统安全相关设置</p>
+              </div>
+              <div className="config-item">
+                <h3>日志配置</h3>
+                <p>管理系统日志记录设置</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 日志管理标签页内容 */}
+      {activeTab === 'logs' && (
+        <div className="card">
+          <h2>日志管理</h2>
+          <div className="logs-content">
+            <p>日志管理功能正在开发中...</p>
+            <div className="logs-placeholder">
+              <div className="log-item">
+                <h3>系统日志</h3>
+                <p>查看系统运行日志</p>
+              </div>
+              <div className="log-item">
+                <h3>用户日志</h3>
+                <p>查看用户操作日志</p>
+              </div>
+              <div className="log-item">
+                <h3>错误日志</h3>
+                <p>查看系统错误日志</p>
+              </div>
+              <div className="log-item">
+                <h3>性能日志</h3>
+                <p>查看系统性能日志</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 系统监控标签页内容 */}
+      {activeTab === 'monitoring' && (
+        <div className="card">
+          <h2>系统监控</h2>
+          <div className="monitoring-content">
+            <p>系统监控功能正在开发中...</p>
+            <div className="monitoring-stats">
+              <div className="stat-card">
+                <h3>系统状态</h3>
+                <div className="stat-value status-active">运行中</div>
+              </div>
+              <div className="stat-card">
+                <h3>在线用户</h3>
+                <div className="stat-value">1</div>
+              </div>
+              <div className="stat-card">
+                <h3>CPU使用率</h3>
+                <div className="stat-value">25%</div>
+              </div>
+              <div className="stat-card">
+                <h3>内存使用率</h3>
+                <div className="stat-value">45%</div>
+              </div>
+            </div>
+            <div className="monitoring-placeholder">
+              <div className="monitoring-item">
+                  <h3>系统资源监控</h3>
+                  <p>实时监控CPU、内存、磁盘等系统资源使用情况</p>
+              </div>
+              <div className="monitoring-item">
+                <h3>API性能监控</h3>
+                <p>监控API请求响应时间和成功率</p>
+              </div>
+              <div className="monitoring-item">
+                <h3>数据库监控</h3>
+                <p>监控数据库连接数和查询性能</p>
+              </div>
+              <div className="monitoring-item">
+                <h3>服务状态监控</h3>
+                <p>监控系统各服务的运行状态</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add User Modal */}
       {showAddModal && (
@@ -207,47 +469,52 @@ const Admin: React.FC = () => {
             </div>
             <form onSubmit={handleAddUser} className="modal-body">
               <div className="form-group">
-                <label>用户名</label>
+                <label className="form-label">用户名</label>
                 <input
                   type="text"
                   name="username"
+                  className="form-input"
                   value={formData.username}
                   onChange={handleInputChange}
                   required
                 />
               </div>
               <div className="form-group">
-                <label>邮箱</label>
+                <label className="form-label">邮箱</label>
                 <input
                   type="email"
                   name="email"
+                  className="form-input"
                   value={formData.email}
                   onChange={handleInputChange}
                 />
               </div>
               <div className="form-group">
-                <label>全名</label>
+                <label className="form-label">全名</label>
                 <input
                   type="text"
                   name="full_name"
+                  className="form-input"
                   value={formData.full_name}
                   onChange={handleInputChange}
                 />
               </div>
               <div className="form-group">
-                <label>密码</label>
+                <label className="form-label">密码</label>
                 <input
                   type="password"
                   name="password"
+                  className="form-input"
                   value={formData.password}
                   onChange={handleInputChange}
                   required
                 />
               </div>
               <div className="form-group">
-                <label>角色</label>
+                <label className="form-label">角色</label>
                 <select
                   name="role"
+                  className="form-input"
                   value={formData.role}
                   onChange={handleInputChange}
                 >
@@ -289,52 +556,57 @@ const Admin: React.FC = () => {
             </div>
             <form onSubmit={handleEditUser} className="modal-body">
               <div className="form-group">
-                <label>Username</label>
+                <label className="form-label">用户名</label>
                 <input
                   type="text"
                   name="username"
+                  className="form-input"
                   value={formData.username}
                   onChange={handleInputChange}
                   required
                 />
               </div>
               <div className="form-group">
-                <label>Email</label>
+                <label className="form-label">邮箱</label>
                 <input
                   type="email"
                   name="email"
+                  className="form-input"
                   value={formData.email}
                   onChange={handleInputChange}
                 />
               </div>
               <div className="form-group">
-                <label>Full Name</label>
+                <label className="form-label">全名</label>
                 <input
                   type="text"
                   name="full_name"
+                  className="form-input"
                   value={formData.full_name}
                   onChange={handleInputChange}
                 />
               </div>
               <div className="form-group">
-                <label>Password (leave empty to keep current)</label>
+                <label className="form-label">密码 (留空保持当前密码)</label>
                 <input
                   type="password"
                   name="password"
+                  className="form-input"
                   value={formData.password}
                   onChange={handleInputChange}
                 />
               </div>
               <div className="form-group">
-                <label>Role</label>
+                <label className="form-label">角色</label>
                 <select
                   name="role"
+                  className="form-input"
                   value={formData.role}
                   onChange={handleInputChange}
                 >
-                  <option value="viewer">Viewer</option>
-                  <option value="developer">Developer</option>
-                  <option value="admin">Admin</option>
+                  <option value="viewer">查看者</option>
+                  <option value="developer">开发者</option>
+                  <option value="admin">管理员</option>
                 </select>
               </div>
               <div className="form-group checkbox-group">
@@ -345,7 +617,7 @@ const Admin: React.FC = () => {
                   checked={formData.disabled}
                   onChange={handleInputChange}
                 />
-                <label htmlFor="disabled">Disabled</label>
+                <label htmlFor="disabled">禁用</label>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>

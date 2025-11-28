@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 class ModelVersionBase(BaseModel):
@@ -19,3 +19,9 @@ class ModelVersionResponse(ModelVersionBase):
     
     class Config:
         from_attributes = True
+
+class ModelResponse(BaseModel):
+    data: List[ModelVersionResponse]
+    total: int
+    page: int
+    per_page: int

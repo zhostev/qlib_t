@@ -21,6 +21,58 @@ interface ExperimentCreate {
   config: any
 }
 
+// Analysis interfaces
+export interface SignalAnalysis {
+  ic: {
+    dates: string[]
+    values: number[]
+  }
+  monthly_ic: {
+    months: string[]
+    values: number[]
+  }
+  auto_correlation: {
+    lags: number[]
+    values: number[]
+  }
+  return_distribution: {
+    bins: number[]
+    counts: number[]
+  }
+}
+
+export interface PortfolioAnalysis {
+  cumulative_return: {
+    dates: string[]
+    values: number[]
+  }
+  group_returns: {
+    dates: string[]
+    groups: Record<string, number[]>
+  }
+  long_short: {
+    dates: string[]
+    values: number[]
+  }
+}
+
+export interface BacktestAnalysis {
+  report: {
+    total_return: number
+    annual_return: number
+    sharpe_ratio: number
+    max_drawdown: number
+    win_rate: number
+  }
+  explanation: string
+}
+
+export interface FullAnalysis {
+  signal_analysis: SignalAnalysis
+  portfolio_analysis: PortfolioAnalysis
+  backtest_analysis: BacktestAnalysis
+}
+
 export const getExperiments = async (): Promise<Experiment[]> => {
   const token = getToken()
   const response = await axios.get(API_URL, {
@@ -107,4 +159,49 @@ export const getExperimentLogs = async (id: number): Promise<string> => {
     }
   })
   return response.data.logs || ''
+}
+
+// Analysis API calls
+export const getFullAnalysis = async (id: number): Promise<FullAnalysis> => {
+  const token = getToken()
+  const response = await axios.get(`${API_URL}${id}/analysis`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
+  return response.data
+}
+
+export const getSignalAnalysis = async (id: number): Promise<SignalAnalysis> => {
+  const token = getToken()
+  const response = await axios.get(`${API_URL}${id}/analysis/signal`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
+  return response.data
+}
+
+export const getPortfolioAnalysis = async (id: number): Promise<PortfolioAnalysis> => {
+  const token = getToken()
+  const response = await axios.get(`${API_URL}${id}/analysis/portfolio`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
+  return response.data
+}
+
+export const getBacktestAnalysis = async (id: number): Promise<BacktestAnalysis> => {
+  const token = getToken()
+  const response = await axios.get(`${API_URL}${id}/analysis/backtest`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
+  return response.data
 }

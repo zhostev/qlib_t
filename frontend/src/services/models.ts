@@ -14,9 +14,17 @@ interface ModelVersion {
   performance?: any
 }
 
-export const getModels = async (): Promise<ModelVersion[]> => {
+interface ModelResponse {
+  data: ModelVersion[]
+  total: number
+  page: number
+  per_page: number
+}
+
+export const getModels = async (page: number = 1, perPage: number = 10): Promise<ModelResponse> => {
   const token = getToken()
   const response = await axios.get(API_URL, {
+    params: { page, per_page: perPage },
     headers: {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` })
@@ -36,10 +44,11 @@ export const getModel = async (id: number): Promise<ModelVersion> => {
   return response.data
 }
 
-export const getModelVersions = async (experimentId?: number): Promise<ModelVersion[]> => {
+export const getModelVersions = async (experimentId?: number, page: number = 1, perPage: number = 10): Promise<ModelResponse> => {
   const url = experimentId ? `${API_URL}experiment/${experimentId}` : API_URL
   const token = getToken()
   const response = await axios.get(url, {
+    params: { page, per_page: perPage },
     headers: {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` })

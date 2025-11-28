@@ -182,22 +182,21 @@ const FactorManagement: React.FC = () => {
 
   return (
     <div className="container">
-      <div className="factor-management">
-        <div className="page-header">
-          <h1>因子管理</h1>
-          <button 
-            className="btn btn-primary" 
-            onClick={() => setShowForm(true)}
-          >
-            创建因子
-          </button>
-        </div>
-
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
-
+      
+      <div className="page-header">
+        <h1>因子管理</h1>
+        <button 
+          className="btn btn-primary" 
+          onClick={() => setShowForm(true)}
+        >
+          创建因子
+        </button>
+      </div>
+      
       {showForm && (
-        <div className="form-container">
+        <div className="card" style={{ marginBottom: '20px' }}>
           <div className="form-header">
             <h2>{editingFactor ? '编辑因子' : '创建因子'}</h2>
             <button className="btn btn-secondary" onClick={resetForm}>
@@ -272,8 +271,8 @@ const FactorManagement: React.FC = () => {
           </form>
         </div>
       )}
-
-      <div className="factors-container">
+      
+      <div className="card">
         <h2>因子组列表</h2>
         {loading ? (
           <div className="loading">Loading...</div>
@@ -430,7 +429,6 @@ const FactorManagement: React.FC = () => {
         )}
       </div>
     </div>
-  </div>
   )
 }
 

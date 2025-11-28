@@ -7,14 +7,14 @@ interface LoginResponse {
   token_type: string
 }
 
-interface UserInfo {
-  id: number
+export interface UserInfo {
+  id?: number
   username: string
   email?: string
   full_name?: string
-  role: string
-  disabled: boolean
-  created_at: string
+  role?: string
+  disabled?: boolean
+  created_at?: string
   updated_at?: string
   last_login?: string
 }
@@ -31,7 +31,7 @@ export const login = async (username: string, password: string): Promise<void> =
       },
       transformRequest: [(data) => {
         // Transform data to form-urlencoded format
-        return Object.entries(data).map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('&');
+        return Object.entries(data).map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value as string)}`).join('&');
       }]
     });
     
@@ -137,7 +137,7 @@ export const updateUser = async (
     username: string
     email: string
     full_name: string
-    password: string
+    password?: string
     role: string
     disabled: boolean
   }

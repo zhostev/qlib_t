@@ -220,6 +220,10 @@
   background-color: #f5f5f5;
 }
 
+.data-table .data-row {
+  cursor: pointer;
+}
+
 .data-table td {
   color: #333;
 }
@@ -335,4 +339,322 @@
   .page-info {
     margin: 8px 0;
   }
+}
+
+/* New styles for advanced charts */
+.chart-wrapper {
+  min-height: 400px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 10px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chart-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #999;
+  font-size: 16px;
+  font-style: italic;
+}
+
+.multi-stock-selection,
+.technical-indicators-selection,
+.distribution-chart-controls {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.multi-stock-selection h4,
+.technical-indicators-selection h4,
+.distribution-chart-controls h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+}
+
+.stock-selection-list,
+.indicators-selection-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.stock-selection-item,
+.indicator-selection-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  font-size: 14px;
+}
+
+.stock-selection-item:hover,
+.indicator-selection-item:hover {
+  background-color: #e6f7ff;
+  border-color: #91d5ff;
+}
+
+.stock-selection-item input[type="checkbox"]:checked + span,
+.indicator-selection-item input[type="checkbox"]:checked + span {
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.selected-stocks {
+  margin-top: 15px;
+  padding: 12px;
+  background-color: #e6f7ff;
+  border-radius: 4px;
+  font-size: 14px;
+  border: 1px solid #91d5ff;
+}
+
+.selected-stocks h5 {
+  margin: 0;
+  color: #1890ff;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.no-indicators-selected,
+.no-stocks-selected {
+  margin-top: 15px;
+  padding: 12px;
+  background-color: #fff2f0;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #ff4d4f;
+  border: 1px solid #ffccc7;
+}
+
+.distribution-type-selector {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.distribution-type-selector label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  transition: color 0.2s ease;
+}
+
+.distribution-type-selector label:hover {
+  color: #1890ff;
+}
+
+.distribution-type-selector input[type="radio"]:checked + span {
+  color: #1890ff;
+  font-weight: 600;
+}
+
+/* React Select styles */
+.react-select-container {
+  width: 100%;
+}
+
+.react-select__control {
+  border: 1px solid #d9d9d9 !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  min-height: 36px !important;
+}
+
+.react-select__control:hover {
+  border-color: #1890ff !important;
+}
+
+.react-select__control--is-focused {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+.react-select__option--is-selected {
+  background-color: #1890ff !important;
+}
+
+.react-select__option--is-focused {
+  background-color: #e6f7ff !important;
+  color: #1890ff !important;
+}
+
+/* Data alignment styles */
+.align-config {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.align-mode {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.radio-group {
+  display: flex;
+  gap: 20px;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  transition: color 0.2s ease;
+}
+
+.radio-item:hover {
+  color: #1890ff;
+}
+
+.radio-item input[type="radio"]:checked + span {
+  color: #1890ff;
+  font-weight: 600;
+}
+
+.align-date {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.align-status {
+  margin-left: auto;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.status-success {
+  background-color: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.status-error {
+  background-color: #fff2f0;
+  color: #ff4d4f;
+  border: 1px solid #ffccc7;
+}
+
+/* Feature selector styles */
+.feature-selector {
+  display: flex;
+  gap: 24px;
+  margin-top: 15px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.feature-list {
+  flex: 1;
+}
+
+.feature-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.feature-item {
+  margin-bottom: 0;
+}
+
+.feature-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+}
+
+.feature-checkbox:hover {
+  background-color: #e6f7ff;
+  border-color: #91d5ff;
+}
+
+.feature-name {
+  font-weight: 500;
+  margin-right: 8px;
+  color: #333;
+}
+
+.feature-description {
+  font-size: 12px;
+  color: #666;
+  flex: 1;
+}
+
+.custom-feature {
+  flex: 1;
+  padding-left: 24px;
+  border-left: 1px solid #e0e0e0;
+}
+
+.custom-feature-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.custom-feature-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.custom-feature-form .form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.custom-feature-form .form-control {
+  padding: 8px 12px;
+  font-size: 14px;
 }

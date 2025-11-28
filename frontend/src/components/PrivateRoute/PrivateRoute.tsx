@@ -1,6 +1,6 @@
 import React from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
-import { getUserInfo, isAuthenticated } from '../../services/auth'
+import { isAuthenticated } from '../../services/auth'
 
 interface PrivateRouteProps {
   allowedRoles?: string[]

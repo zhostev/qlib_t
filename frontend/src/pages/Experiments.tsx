@@ -355,7 +355,7 @@ const Experiments: React.FC = () => {
 
   return (
     <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="page-header">
         <h1>实验管理</h1>
         {canCreateExperiments && (
           <button className="btn" onClick={() => setShowForm(true)}>
@@ -365,10 +365,10 @@ const Experiments: React.FC = () => {
       </div>
 
       {showForm && (
-        <div style={{ marginBottom: '20px', padding: '20px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)' }}>
+        <div className="card" style={{ marginBottom: '20px' }}>
           <h2>创建实验</h2>
           <form onSubmit={handleSubmit}>
-            <div className="form-group" style={{ marginBottom: '15px' }}>
+            <div className="form-group">
               <label htmlFor="name">名称</label>
               <input
                 type="text"
@@ -378,7 +378,7 @@ const Experiments: React.FC = () => {
                 required
               />
             </div>
-            <div className="form-group" style={{ marginBottom: '15px' }}>
+            <div className="form-group">
               <label htmlFor="description">描述</label>
               <textarea
                 id="description"
@@ -387,7 +387,7 @@ const Experiments: React.FC = () => {
                 rows={3}
               />
             </div>
-            <div className="form-group" style={{ marginBottom: '15px' }}>
+            <div className="form-group">
               <label htmlFor="benchmark">选择Benchmark样例</label>
               <select
                 id="benchmark"
@@ -403,7 +403,7 @@ const Experiments: React.FC = () => {
               </select>
             </div>
             
-            <div className="form-group" style={{ marginBottom: '15px' }}>
+            <div className="form-group">
               <label htmlFor="config">或选择配置模板</label>
               <select
                 id="config"
@@ -418,7 +418,7 @@ const Experiments: React.FC = () => {
                 ))}
               </select>
             </div>
-            <div className="form-group" style={{ marginBottom: '15px' }}>
+            <div className="form-group">
               <label htmlFor="yamlContent">YAML配置</label>
               <YAMLEditor
                 value={yamlContent}
@@ -426,7 +426,7 @@ const Experiments: React.FC = () => {
                 error={error}
               />
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div className="form-actions">
               <button type="submit" className="btn">
                 创建
               </button>
@@ -636,14 +636,14 @@ const Experiments: React.FC = () => {
                   </div>
                 </div>
                 <p className="experiment-description">{experiment.description}</p>
-                <div className="experiment-meta">
-                  {experiment.progress !== undefined && (
+                {experiment.progress !== undefined && (
+                  <div className="experiment-meta">
                     <div className="meta-item">
                       <span className="meta-label">进度:</span>
                       <span className="progress-text">{experiment.progress.toFixed(0)}%</span>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
                 <div className="experiment-actions">
                   <button 
                     className="action-btn view-btn"

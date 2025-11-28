@@ -5,6 +5,7 @@ from app.models.experiment import Experiment
 from app.models.user import User
 from app.schemas.experiment import ExperimentCreate, ExperimentResponse, ExperimentUpdate
 from app.services.experiment import create_experiment, get_experiment, get_experiments, update_experiment, delete_experiment
+from app.services.analysis import AnalysisService
 from app.services.task import TaskService
 from app.api.deps import get_current_active_user, get_current_developer_user
 
@@ -49,3 +50,39 @@ def run_experiment(experiment_id: int, db: Session = Depends(get_db), current_us
     task = TaskService.create_task(db=db, experiment_id=experiment_id, task_type="train")
     
     return {"message": "Experiment task created successfully", "task_id": task.id}
+
+@router.get("/{experiment_id}/analysis")
+def get_experiment_analysis(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    """Get all analysis data for an experiment"""
+    experiment = get_experiment(db=db, experiment_id=experiment_id)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    
+    return AnalysisService.get_full_analysis(experiment)
+
+@router.get("/{experiment_id}/analysis/signal")
+def get_signal_analysis(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    """Get signal analysis data"""
+    experiment = get_experiment(db=db, experiment_id=experiment_id)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    
+    return AnalysisService.generate_signal_analysis(experiment)
+
+@router.get("/{experiment_id}/analysis/portfolio")
+def get_portfolio_analysis(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    """Get portfolio analysis data"""
+    experiment = get_experiment(db=db, experiment_id=experiment_id)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    
+    return AnalysisService.generate_portfolio_analysis(experiment)
+
+@router.get("/{experiment_id}/analysis/backtest")
+def get_backtest_analysis(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    """Get backtest analysis data"""
+    experiment = get_experiment(db=db, experiment_id=experiment_id)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    
+    return AnalysisService.generate_backtest_analysis(experiment)

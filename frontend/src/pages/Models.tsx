@@ -13,37 +13,65 @@ interface ModelVersion {
   performance?: any
 }
 
+interface ModelResponse {
+  data: ModelVersion[]
+  total: number
+  page: number
+  per_page: number
+}
+
 const Models: React.FC = () => {
   const [models, setModels] = useState<ModelVersion[]>([])
   const [loading, setLoading] = useState(true)
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [perPage] = useState(10)
   const navigate = useNavigate()
 
   useEffect(() => {
     const fetchModels = async () => {
       try {
-        const modelsData = await getModels()
-        // Ensure modelsData is an array
-        setModels(Array.isArray(modelsData) ? modelsData : [])
+        setLoading(true)
+        const modelsData: ModelResponse = await getModels(page, perPage)
+        setModels(modelsData.data)
+        setTotal(modelsData.total)
       } catch (err) {
         console.error('Failed to fetch models:', err)
-        // Set empty array on error
         setModels([])
+        setTotal(0)
       } finally {
         setLoading(false)
       }
     }
 
     fetchModels()
-  }, [])
+  }, [page, perPage])
 
   const handleDeleteModel = async (id: number) => {
     if (window.confirm('确定要删除这个模型吗？')) {
       try {
         await deleteModel(id)
-        setModels(models.filter(model => model.id !== id))
+        // Refresh the current page after deletion
+        const modelsData: ModelResponse = await getModels(page, perPage)
+        setModels(modelsData.data)
+        setTotal(modelsData.total)
       } catch (err) {
         console.error('Failed to delete model:', err)
       }
+    }
+  }
+
+  const totalPages = Math.ceil(total / perPage)
+
+  const handlePreviousPage = () => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }
+
+  const handleNextPage = () => {
+    if (page < totalPages) {
+      setPage(page + 1)
     }
   }
 
@@ -53,37 +81,37 @@ const Models: React.FC = () => {
 
   return (
     <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="page-header">
         <h1>模型管理</h1>
       </div>
 
       <div className="models-list">
-        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)' }}>
-          <thead style={{ backgroundColor: '#f5f5f5' }}>
+        <table className="models-table">
+          <thead>
             <tr>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>名称</th>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>版本</th>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>实验ID</th>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>创建时间</th>
-              <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>操作</th>
+              <th>名称</th>
+              <th>版本</th>
+              <th>实验ID</th>
+              <th>创建时间</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
             {models.map(model => (
               <tr key={model.id}>
-                <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>{model.name}</td>
-                <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>{model.version}</td>
-                <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>{model.experiment_id}</td>
-                <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>{new Date(model.created_at).toLocaleString()}</td>
-                <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>
+                <td>{model.name}</td>
+                <td>{model.version}</td>
+                <td>{model.experiment_id}</td>
+                <td>{new Date(model.created_at).toLocaleString()}</td>
+                <td>
                   <button 
-                    style={{ marginRight: '10px', padding: '5px 10px', backgroundColor: '#646cff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    className="btn btn-sm" 
                     onClick={() => navigate(`/models/${model.id}`)}
                   >
                     查看
                   </button>
                   <button 
-                    style={{ padding: '5px 10px', backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    className="btn btn-sm btn-danger" 
                     onClick={() => handleDeleteModel(model.id)}
                   >
                     删除
@@ -93,6 +121,26 @@ const Models: React.FC = () => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="pagination">
+        <button 
+          className="btn btn-sm" 
+          onClick={handlePreviousPage} 
+          disabled={page === 1}
+        >
+          上一页
+        </button>
+        <span className="pagination-info">
+          第 {page} 页，共 {totalPages} 页，总计 {total} 个模型
+        </span>
+        <button 
+          className="btn btn-sm" 
+          onClick={handleNextPage} 
+          disabled={page === totalPages}
+        >
+          下一页
+        </button>
       </div>
     </div>
   )

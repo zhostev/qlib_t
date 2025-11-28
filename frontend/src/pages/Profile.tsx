@@ -24,9 +24,11 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <div className="profile-container">
-      <h1>用户资料</h1>
-      <div className="profile-card">
+    <div className="container">
+      <div className="page-header">
+        <h1>用户资料</h1>
+      </div>
+      <div className="card">
         <h2>个人信息</h2>
         <div className="profile-info">
           <div className="info-item">

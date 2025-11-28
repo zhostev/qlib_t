@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.task import Task
 from app.models.experiment import Experiment
+from app.services.analysis import AnalysisService
 from sqlalchemy.sql import func
 
 class TaskService:
@@ -67,6 +68,13 @@ class TaskService:
                 experiment.error = error
             if result is not None:
                 experiment.performance = result.get("performance")
+                
+                # Generate analysis data when experiment completes successfully
+                if status == "completed":
+                    # In a real implementation, we would generate actual analysis data here
+                    # For now, we'll just set a flag or placeholder
+                    # experiment.analysis = AnalysisService.get_full_analysis(experiment)
+                    pass
         
         db.commit()
         db.refresh(task)

@@ -26,7 +26,9 @@ def get_model_versions(db: Session, skip: int = 0, limit: int = 100, experiment_
     query = db.query(ModelVersion)
     if experiment_id:
         query = query.filter(ModelVersion.experiment_id == experiment_id)
-    return query.offset(skip).limit(limit).all()
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
+    return items, total
 
 
 def delete_model_version(db: Session, model_id: int):

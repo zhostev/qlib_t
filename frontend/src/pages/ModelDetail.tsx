@@ -17,6 +17,7 @@ const ModelDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const [model, setModel] = useState<ModelVersion | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isMetricsExpanded, setIsMetricsExpanded] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -46,7 +47,7 @@ const ModelDetail: React.FC = () => {
 
   return (
     <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="page-header">
         <h1>Model: {model.name} (v{model.version})</h1>
         <button className="btn" onClick={() => navigate('/models')}>
           Back to Models
@@ -64,10 +65,20 @@ const ModelDetail: React.FC = () => {
 
       {model.metrics && (
         <div className="card" style={{ marginBottom: '20px' }}>
-          <h3>Metrics</h3>
-          <pre style={{ backgroundColor: '#f5f5f5', padding: '15px', borderRadius: '4px', overflow: 'auto' }}>
-            {JSON.stringify(model.metrics, null, 2)}
-          </pre>
+          <div className="card-header">
+            <h3>Metrics</h3>
+            <button 
+              className="btn btn-sm"
+              onClick={() => setIsMetricsExpanded(!isMetricsExpanded)}
+            >
+              {isMetricsExpanded ? 'Collapse' : 'Expand'}
+            </button>
+          </div>
+          {isMetricsExpanded && (
+            <pre className="config-pre">
+              {JSON.stringify(model.metrics, null, 2)}
+            </pre>
+          )}
         </div>
       )}
 

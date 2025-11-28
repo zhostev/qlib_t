@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { getUserInfo, logout, isAuthenticated, getToken } from '../../services/auth'
+import type { UserInfo } from '../../services/auth'
 import './Navigation.css'
-
-interface UserInfo {
-  username: string
-  email?: string
-  full_name?: string
-  disabled?: boolean
-}
 
 const Navigation: React.FC = () => {
   const [user, setUser] = useState<string | null>(null)
