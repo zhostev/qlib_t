@@ -8,6 +8,8 @@ import ModelDetail from './pages/ModelDetail'
 import Configs from './pages/Configs'
 import Profile from './pages/Profile'
 import Admin from './pages/Admin'
+import FactorManagement from './pages/FactorManagement'
+import DataManagement from './pages/DataManagement'
 
 import Navigation from './components/Navigation/Navigation'
 import PrivateRoute from './components/PrivateRoute/PrivateRoute'
@@ -33,26 +35,28 @@ function App() {
           <Route path="/" element={<Login />} />
           
           {/* Protected routes for all authenticated users */}
-          <Route element={<PrivateRoute />}>
-            <Route element={<MainLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/experiments" element={<Experiments />} />
-              <Route path="/experiments/:id" element={<ExperimentDetail />} />
-              <Route path="/models" element={<Models />} />
-              <Route path="/models/:id" element={<ModelDetail />} />
-              <Route path="/profile" element={<Profile />} />
-              
-              {/* Developer and admin only routes */}
-              <Route element={<PrivateRoute allowedRoles={['developer', 'admin']} />}>
-                <Route path="/configs" element={<Configs />} />
+              <Route element={<PrivateRoute />}>
+                <Route element={<MainLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/experiments" element={<Experiments />} />
+                  <Route path="/experiments/:id" element={<ExperimentDetail />} />
+                  <Route path="/models" element={<Models />} />
+                  <Route path="/models/:id" element={<ModelDetail />} />
+                  <Route path="/factors" element={<FactorManagement />} />
+                  <Route path="/data" element={<DataManagement />} />
+                  <Route path="/profile" element={<Profile />} />
+                  
+                  {/* Developer and admin only routes */}
+                  <Route element={<PrivateRoute allowedRoles={['developer', 'admin']} />}>
+                    <Route path="/configs" element={<Configs />} />
+                  </Route>
+                  
+                  {/* Admin only routes */}
+                  <Route element={<PrivateRoute allowedRoles={['admin']} />}>
+                    <Route path="/admin" element={<Admin />} />
+                  </Route>
+                </Route>
               </Route>
-              
-              {/* Admin only routes */}
-              <Route element={<PrivateRoute allowedRoles={['admin']} />}>
-                <Route path="/admin" element={<Admin />} />
-              </Route>
-            </Route>
-          </Route>
         </Routes>
       </div>
     </Router>

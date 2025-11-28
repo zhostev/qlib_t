@@ -11,7 +11,7 @@ class TokenData(BaseModel):
 
 class UserCreate(BaseModel):
     username: str
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     full_name: Optional[str] = None
     password: str
     role: Optional[str] = "viewer"

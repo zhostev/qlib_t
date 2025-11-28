@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api import auth, experiments, models, configs, benchmarks
+from app.api import auth, experiments, models, configs, benchmarks, factors, data
 
 # Create main API router
 api_router = APIRouter()
@@ -10,3 +10,5 @@ api_router.include_router(experiments.router, prefix="/experiments", tags=["expe
 api_router.include_router(models.router, prefix="/models", tags=["models"])
 api_router.include_router(configs.router, prefix="/configs", tags=["configs"])
 api_router.include_router(benchmarks.router, prefix="/benchmarks", tags=["benchmarks"])
+api_router.include_router(factors.router, prefix="/factors", tags=["factors"])
+api_router.include_router(data.router, prefix="/data", tags=["data"])

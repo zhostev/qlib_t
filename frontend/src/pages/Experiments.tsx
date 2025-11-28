@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getExperiments, createExperiment, runExperiment, deleteExperiment } from '../services/experiments'
+import { getExperiments, createExperiment, runExperiment, deleteExperiment, getExperimentLogs } from '../services/experiments'
 import { getConfigs } from '../services/configs'
 import { getBenchmarks } from '../services/benchmarks'
 import { getUserInfo } from '../services/auth'
@@ -47,6 +47,8 @@ const Experiments: React.FC = () => {
   const [yamlContent, setYamlContent] = useState('')
   const [error, setError] = useState('')
   const [userInfo, setUserInfo] = useState<any>(null)
+  const [showLogs, setShowLogs] = useState<number | null>(null)
+  const [logs, setLogs] = useState<{ [key: number]: string[] }>({})
   const navigate = useNavigate()
   
   // Get user info from localStorage and API
@@ -137,6 +139,33 @@ const Experiments: React.FC = () => {
     // Clean up interval on component unmount
     return () => clearInterval(interval)
   }, [])
+
+  // Fetch logs for expanded experiments every 3 seconds
+  useEffect(() => {
+    if (showLogs === null) return
+
+    const fetchLogs = async () => {
+      try {
+        const logsContent = await getExperimentLogs(showLogs)
+        if (logsContent) {
+          // Split logs by newlines and filter out empty lines
+          const logLines = logsContent.split('\n').filter(line => line.trim() !== '')
+          setLogs(prev => ({
+            ...prev,
+            [showLogs]: logLines
+          }))
+        }
+      } catch (err) {
+        console.error('Failed to fetch logs:', err)
+      }
+    }
+
+    // Fetch logs immediately and then every 3 seconds
+    fetchLogs()
+    const logsInterval = setInterval(fetchLogs, 3000)
+
+    return () => clearInterval(logsInterval)
+  }, [showLogs])
 
   const handleConfigChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const configId = parseInt(e.target.value)
@@ -411,7 +440,13 @@ const Experiments: React.FC = () => {
             <div className="experiment-header">
               <h3 className="experiment-name">{experiment.name}</h3>
               <span className={`experiment-status status-${experiment.status}`}>
-                {experiment.status}
+                {experiment.status === 'created' && '已创建'}
+                {experiment.status === 'pending' && '待运行'}
+                {experiment.status === 'running' && '运行中'}
+                {experiment.status === 'completed' && '已完成'}
+                {experiment.status === 'failed' && '失败'}
+                {experiment.status === 'stopped' && '已停止'}
+                {!['created', 'pending', 'running', 'completed', 'failed', 'stopped'].includes(experiment.status) && experiment.status}
               </span>
             </div>
             
@@ -519,6 +554,12 @@ const Experiments: React.FC = () => {
                   {experiment.status === 'created' ? '运行实验' : '重新运行'}
                 </button>
               )}
+              <button 
+                className="action-btn logs-btn"
+                onClick={() => setShowLogs(showLogs === experiment.id ? null : experiment.id)}
+              >
+                {showLogs === experiment.id ? '隐藏日志' : '查看日志'}
+              </button>
               {canCreateExperiments && (
               <button 
                 className="action-btn delete-btn"
@@ -528,6 +569,27 @@ const Experiments: React.FC = () => {
               </button>
               )}
             </div>
+            
+            {showLogs === experiment.id && (
+              <div className="experiment-logs">
+                <h4>运行日志</h4>
+                <div className="logs-container">
+                  {logs[experiment.id] && logs[experiment.id].length > 0 ? (
+                    <div className="logs-content">
+                      {logs[experiment.id].map((log, index) => (
+                        <div key={index} className="log-line">
+                          {log}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="no-logs">
+                      {experiment.status === 'running' ? '正在运行...' : '暂无日志'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

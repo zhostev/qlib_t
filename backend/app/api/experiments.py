@@ -32,6 +32,13 @@ def update_existing_experiment(experiment_id: int, experiment: ExperimentUpdate,
 def delete_existing_experiment(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_developer_user)):
     return delete_experiment(db=db, experiment_id=experiment_id)
 
+@router.get("/{experiment_id}/logs")
+def get_experiment_logs(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    experiment = get_experiment(db=db, experiment_id=experiment_id)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    return {"logs": experiment.logs or ""}
+
 @router.post("/{experiment_id}/run")
 def run_experiment(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_developer_user)):
     experiment = get_experiment(db=db, experiment_id=experiment_id)

@@ -4,7 +4,10 @@ from app.models.user import User
 from app.models.config import Config
 from app.models.experiment import Experiment
 from app.models.model_version import ModelVersion
+from app.models.factor import Factor, FactorGroup
+from app.models.stock_data import StockData
 from app.services.auth import get_password_hash
+from datetime import datetime, timedelta
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
@@ -40,4 +43,198 @@ else:
     else:
         print("Admin user already exists with admin role")
 
+# Create factor groups if they don't exist
+factor_groups = [
+    {
+        "name": "158因子组",
+        "description": "158因子组合，用于选股的多因子模型",
+        "factor_count": 158
+    },
+    {
+        "name": "360因子组",
+        "description": "360因子组合，用于择时的技术指标",
+        "factor_count": 360
+    }
+]
+
+# Create factor groups
+for group_data in factor_groups:
+    existing_group = db.query(FactorGroup).filter(FactorGroup.name == group_data["name"]).first()
+    if not existing_group:
+        group = FactorGroup(**group_data)
+        db.add(group)
+        db.commit()
+        print(f"Factor group {group_data['name']} created successfully")
+    else:
+        print(f"Factor group {group_data['name']} already exists")
+
+# Create factors for each group (skip if group_id column doesn't exist)
+try:
+    groups = db.query(FactorGroup).all()
+    for group in groups:
+        # Check if factors already exist for this group
+        existing_factor_count = db.query(Factor).filter(Factor.group_id == group.id).count()
+        if existing_factor_count < group.factor_count:
+            # Create missing factors
+            for i in range(existing_factor_count + 1, group.factor_count + 1):
+                factor_name = f"{group.name}_factor_{i}"
+                existing_factor = db.query(Factor).filter(Factor.name == factor_name).first()
+                if not existing_factor:
+                    factor = Factor(
+                        name=factor_name,
+                        description=f"{group.name}中的第{i}个因子",
+                        formula=f"factor_{i} = (close - open) / open * {i}",
+                        type="technical",
+                        group_id=group.id
+                    )
+                    db.add(factor)
+            db.commit()
+            print(f"Created {group.factor_count - existing_factor_count} factors for {group.name}")
+        else:
+            print(f"All factors already exist for {group.name}")
+except Exception as e:
+    print(f"Skipping factor creation due to error: {e}")
+    print("This is expected if the factors table doesn't have the group_id column yet.")
+    print("Please recreate the database or run a migration to add the group_id column.")
+
+# Try to load real stock data from QLib
+from app.services.qlib_service import qlib_service
+
+try:
+    # Initialize QLib
+    qlib_service.init_qlib()
+    
+    # Get real instruments from QLib
+    real_instruments = qlib_service.get_instruments()
+    print(f"Got {len(real_instruments)} real instruments from QLib")
+    
+    # Use the first 4 instruments for sample data
+    stock_codes = real_instruments[:4] if len(real_instruments) >= 4 else real_instruments
+    
+    # If no real instruments available, fall back to sample codes
+    if not stock_codes:
+        stock_codes = ["SH600000", "SH600001", "SZ000001", "SZ000002"]
+    
+    print(f"Using stock codes: {stock_codes}")
+    
+    # Get current date and past 30 days
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=30)
+    
+    # Format dates for QLib
+    start_date_str = start_date.strftime("%Y-%m-%d")
+    end_date_str = end_date.strftime("%Y-%m-%d")
+    
+    # Load data for each stock code
+    for code in stock_codes:
+        try:
+            # Get real stock data from QLib
+            stock_data_dict = qlib_service.get_stock_data(code, start_date_str, end_date_str)
+            
+            if stock_data_dict:
+                # Insert real data into database
+                for (date_str, field), value in stock_data_dict.items():
+                    # Parse date
+                    stock_date = datetime.strptime(date_str[0], "%Y-%m-%d").date()
+                    
+                    # Check if data already exists
+                    existing_data = db.query(StockData).filter(
+                        StockData.stock_code == code,
+                        StockData.date == stock_date
+                    ).first()
+                    
+                    if not existing_data:
+                        # Create new stock data entry
+                        stock_data = StockData(
+                            stock_code=code,
+                            date=stock_date,
+                            open=stock_data_dict.get((date_str[0], "open"), 0),
+                            high=stock_data_dict.get((date_str[0], "high"), 0),
+                            low=stock_data_dict.get((date_str[0], "low"), 0),
+                            close=stock_data_dict.get((date_str[0], "close"), 0),
+                            volume=stock_data_dict.get((date_str[0], "volume"), 0)
+                        )
+                        db.add(stock_data)
+                
+                db.commit()
+                print(f"Real data for stock {code} loaded from QLib and saved to database")
+            else:
+                # Fall back to generating sample data if QLib data not available
+                print(f"No real data available for {code}, generating sample data")
+                dates = [datetime.now() - timedelta(days=i) for i in range(30)]
+                for date in dates:
+                    existing_data = db.query(StockData).filter(
+                        StockData.stock_code == code,
+                        StockData.date == date.date()
+                    ).first()
+                    if not existing_data:
+                        # Generate realistic stock data based on stock code and date
+                        base_price = 10.0
+                        
+                        # Generate realistic price movements
+                        open_price = base_price + (date.day * 0.01)
+                        high_price = open_price + 0.5
+                        low_price = open_price - 0.5
+                        close_price = open_price + (date.day % 3 - 1) * 0.1
+                        volume = 1000000 + (date.day * 10000) + (hash(code) % 100000)
+                        
+                        stock_data = StockData(
+                            stock_code=code,
+                            date=date.date(),
+                            open=open_price,
+                            high=high_price,
+                            low=low_price,
+                            close=close_price,
+                            volume=volume
+                        )
+                        db.add(stock_data)
+                db.commit()
+                print(f"Sample data for stock {code} created successfully")
+        except Exception as e:
+            print(f"Error loading data for {code}: {e}")
+            continue
+except Exception as e:
+    print(f"Error loading data from QLib: {e}")
+    print("Falling back to sample data generation")
+    
+    # Fall back to sample data generation
+    stock_codes = ["SH600000", "SH600001", "SZ000001", "SZ000002"]
+    dates = [datetime.now() - timedelta(days=i) for i in range(30)]
+    
+    for code in stock_codes:
+        for date in dates:
+            existing_data = db.query(StockData).filter(
+                StockData.stock_code == code,
+                StockData.date == date.date()
+            ).first()
+            if not existing_data:
+                # Generate realistic stock data based on stock code and date
+                base_price = {
+                    "SH600000": 8.0,
+                    "SH600001": 4.0,
+                    "SZ000001": 15.0,
+                    "SZ000002": 20.0
+                }.get(code, 10.0)
+                
+                # Generate realistic price movements
+                open_price = base_price + (date.day * 0.01)
+                high_price = open_price + 0.5
+                low_price = open_price - 0.5
+                close_price = open_price + (date.day % 3 - 1) * 0.1
+                volume = 1000000 + (date.day * 10000) + (hash(code) % 100000)
+                
+                stock_data = StockData(
+                    stock_code=code,
+                    date=date.date(),
+                    open=open_price,
+                    high=high_price,
+                    low=low_price,
+                    close=close_price,
+                    volume=volume
+                )
+                db.add(stock_data)
+        db.commit()
+        print(f"Sample data for stock {code} created successfully")
+
+db.commit()
 db.close()

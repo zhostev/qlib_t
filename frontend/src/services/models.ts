@@ -14,43 +14,47 @@ interface ModelVersion {
   performance?: any
 }
 
-const axiosInstance = axios.create({
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// Add token to request headers
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = getToken()
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
-
 export const getModels = async (): Promise<ModelVersion[]> => {
-  const response = await axiosInstance.get(API_URL)
+  const token = getToken()
+  const response = await axios.get(API_URL, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }
 
 export const getModel = async (id: number): Promise<ModelVersion> => {
-  const response = await axiosInstance.get(`${API_URL}${id}`)
+  const token = getToken()
+  const response = await axios.get(`${API_URL}${id}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }
 
 export const getModelVersions = async (experimentId?: number): Promise<ModelVersion[]> => {
   const url = experimentId ? `${API_URL}experiment/${experimentId}` : API_URL
-  const response = await axiosInstance.get(url)
+  const token = getToken()
+  const response = await axios.get(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }
 
 export const deleteModel = async (id: number): Promise<any> => {
-  const response = await axiosInstance.delete(`${API_URL}${id}`)
+  const token = getToken()
+  const response = await axios.delete(`${API_URL}${id}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }

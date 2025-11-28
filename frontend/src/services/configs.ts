@@ -22,47 +22,57 @@ interface ConfigCreate {
   type?: ConfigType
 }
 
-const axiosInstance = axios.create({
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// Add token to request headers
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = getToken()
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
-
 export const getConfigs = async (): Promise<Config[]> => {
-  const response = await axiosInstance.get(API_URL)
+  const token = getToken()
+  const response = await axios.get(API_URL, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }
 
 export const getConfig = async (id: number): Promise<Config> => {
-  const response = await axiosInstance.get(`${API_URL}${id}`)
+  const token = getToken()
+  const response = await axios.get(`${API_URL}${id}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }
 
 export const createConfig = async (config: ConfigCreate): Promise<Config> => {
-  const response = await axiosInstance.post(API_URL, config)
+  const token = getToken()
+  const response = await axios.post(API_URL, config, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }
 
 export const updateConfig = async (id: number, config: Partial<Config>): Promise<Config> => {
-  const response = await axiosInstance.put(`${API_URL}${id}`, config)
+  const token = getToken()
+  const response = await axios.put(`${API_URL}${id}`, config, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }
 
 export const deleteConfig = async (id: number): Promise<any> => {
-  const response = await axiosInstance.delete(`${API_URL}${id}`)
+  const token = getToken()
+  const response = await axios.delete(`${API_URL}${id}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }

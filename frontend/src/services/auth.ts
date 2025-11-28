@@ -20,30 +20,34 @@ interface UserInfo {
 }
 
 export const login = async (username: string, password: string): Promise<void> => {
-  // OAuth2PasswordRequestForm expects application/x-www-form-urlencoded
-  const params = new URLSearchParams()
-  params.append('username', username)
-  params.append('password', password)
-  
-  const response = await axios.post<LoginResponse>(`${API_URL}token`, params.toString(), {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    }
-  })
-  
-  if (response.data.access_token) {
-    localStorage.setItem('token', response.data.access_token)
-    localStorage.setItem('username', username) // 存储用户名到localStorage
+  try {
+    // Call actual login API to get token
+    const response = await axios.post<LoginResponse>(`${API_URL}token`, {
+      username,
+      password
+    }, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      transformRequest: [(data) => {
+        // Transform data to form-urlencoded format
+        return Object.entries(data).map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('&');
+      }]
+    });
+    
+    const { access_token, token_type } = response.data;
+    localStorage.setItem('token', access_token);
+    localStorage.setItem('token_type', token_type);
+    localStorage.setItem('username', username);
     
     // 获取并存储用户信息
-    try {
-      const userInfo = await getUserInfo()
-      if (userInfo) {
-        localStorage.setItem('userInfo', JSON.stringify(userInfo))
-      }
-    } catch (error) {
-      console.error('Failed to get user info after login:', error)
+    const userInfo = await getUserInfo();
+    if (userInfo) {
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
     }
+  } catch (error) {
+    console.error('Login failed:', error);
+    throw error;
   }
 }
 

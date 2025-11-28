@@ -104,6 +104,16 @@ const Navigation: React.FC = () => {
               </NavLink>
             </li>
             <li className="nav-item">
+              <NavLink to="/factors" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                因子管理
+              </NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/data" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                数据管理
+              </NavLink>
+            </li>
+            <li className="nav-item">
               <NavLink to="/configs" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 配置管理
               </NavLink>
