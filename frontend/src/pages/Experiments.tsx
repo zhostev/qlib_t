@@ -49,6 +49,7 @@ const Experiments: React.FC = () => {
   const [userInfo, setUserInfo] = useState<any>(null)
   const [showLogs, setShowLogs] = useState<number | null>(null)
   const [logs, setLogs] = useState<{ [key: number]: string[] }>({})
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('list')
   const navigate = useNavigate()
   
   // Get user info from localStorage and API
@@ -91,54 +92,57 @@ const Experiments: React.FC = () => {
   }, [userInfo, canCreateExperiments])
 
   // Fetch data initially and then every 5 seconds for real-time updates
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const experimentsData = await getExperiments()
-        // Ensure experimentsData is an array
-        setExperiments(Array.isArray(experimentsData) ? experimentsData : [])
-      } catch (err) {
-        console.error('Failed to fetch experiments:', err)
-      }
-    }
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const experimentsData = await getExperiments()
+                // Ensure experimentsData is an array and sort by created_at in descending order
+                const sortedExperiments = Array.isArray(experimentsData) 
+                    ? experimentsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    : []
+                setExperiments(sortedExperiments)
+            } catch (err) {
+                console.error('Failed to fetch experiments:', err)
+            }
+        }
 
-    // Fetch configs only once initially
-    const fetchConfigs = async () => {
-      try {
-        const configsData = await getConfigs()
-        // Ensure configsData is an array
-        setConfigs(Array.isArray(configsData) ? configsData : [])
-      } catch (err) {
-        console.error('Failed to fetch configs:', err)
-        // Set empty array on error
-        setConfigs([])
-      }
-    }
+        // Fetch configs only once initially
+        const fetchConfigs = async () => {
+            try {
+                const configsData = await getConfigs()
+                // Ensure configsData is an array
+                setConfigs(Array.isArray(configsData) ? configsData : [])
+            } catch (err) {
+                console.error('Failed to fetch configs:', err)
+                // Set empty array on error
+                setConfigs([])
+            }
+        }
 
-    // Fetch benchmarks only once initially
-    const fetchBenchmarks = async () => {
-      try {
-        const benchmarksData = await getBenchmarks()
-        setBenchmarks(benchmarksData)
-      } catch (err) {
-        console.error('Failed to fetch benchmarks:', err)
-        // Set empty array on error
-        setBenchmarks([])
-      } finally {
-        setLoading(false)
-      }
-    }
+        // Fetch benchmarks only once initially
+        const fetchBenchmarks = async () => {
+            try {
+                const benchmarksData = await getBenchmarks()
+                setBenchmarks(benchmarksData)
+            } catch (err) {
+                console.error('Failed to fetch benchmarks:', err)
+                // Set empty array on error
+                setBenchmarks([])
+            } finally {
+                setLoading(false)
+            }
+        }
 
-    fetchData()
-    fetchConfigs()
-    fetchBenchmarks()
+        fetchData()
+        fetchConfigs()
+        fetchBenchmarks()
 
-    // Set up interval to refresh experiments every 5 seconds
-    const interval = setInterval(fetchData, 5000)
+        // Set up interval to refresh experiments every 5 seconds
+        const interval = setInterval(fetchData, 5000)
 
-    // Clean up interval on component unmount
-    return () => clearInterval(interval)
-  }, [])
+        // Clean up interval on component unmount
+        return () => clearInterval(interval)
+    }, [])
 
   // Fetch logs for expanded experiments every 3 seconds
   useEffect(() => {
@@ -434,160 +438,262 @@ const Experiments: React.FC = () => {
         </div>
       )}
 
-      <div className="experiments-list">
+      <div className="experiments-list-header">
+        <h2>实验列表</h2>
+        <div className="view-mode-switcher">
+          <button 
+            className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
+            onClick={() => setViewMode('card')}
+          >
+            卡片视图
+          </button>
+          <button 
+            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => setViewMode('list')}
+          >
+            列表视图
+          </button>
+        </div>
+      </div>
+
+      <div className={`experiments-list view-${viewMode}`}>
         {experiments.map(experiment => (
-          <div key={experiment.id} className="experiment-card">
-            <div className="experiment-header">
-              <h3 className="experiment-name">{experiment.name}</h3>
-              <span className={`experiment-status status-${experiment.status}`}>
-                {experiment.status === 'created' && '已创建'}
-                {experiment.status === 'pending' && '待运行'}
-                {experiment.status === 'running' && '运行中'}
-                {experiment.status === 'completed' && '已完成'}
-                {experiment.status === 'failed' && '失败'}
-                {experiment.status === 'stopped' && '已停止'}
-                {!['created', 'pending', 'running', 'completed', 'failed', 'stopped'].includes(experiment.status) && experiment.status}
-              </span>
-            </div>
-            
-            <p className="experiment-description">{experiment.description}</p>
-            
-            <div className="experiment-meta">
-              <div className="meta-item">
-                <span className="meta-label">创建时间:</span>
-                <span className="meta-value">{new Date(experiment.created_at).toLocaleString()}</span>
-              </div>
-              <div className="meta-item">
-                <span className="meta-label">更新时间:</span>
-                <span className="meta-value">{new Date(experiment.updated_at).toLocaleString()}</span>
-              </div>
-              {experiment.start_time && (
-                <div className="meta-item">
-                  <span className="meta-label">开始时间:</span>
-                  <span className="meta-value">{new Date(experiment.start_time).toLocaleString()}</span>
+          <div key={experiment.id} className={viewMode === 'card' ? 'experiment-card' : 'experiment-list-item'}>
+            {viewMode === 'card' ? (
+              <>
+                <div className="experiment-header">
+                  <h3 className="experiment-name">{experiment.name}</h3>
+                  <span className={`experiment-status status-${experiment.status}`}>
+                    {experiment.status === 'created' && '已创建'}
+                    {experiment.status === 'pending' && '待运行'}
+                    {experiment.status === 'running' && '运行中'}
+                    {experiment.status === 'completed' && '已完成'}
+                    {experiment.status === 'failed' && '失败'}
+                    {experiment.status === 'stopped' && '已停止'}
+                    {!['created', 'pending', 'running', 'completed', 'failed', 'stopped'].includes(experiment.status) && experiment.status}
+                  </span>
                 </div>
-              )}
-              {experiment.end_time && (
-                <div className="meta-item">
-                  <span className="meta-label">结束时间:</span>
-                  <span className="meta-value">{new Date(experiment.end_time).toLocaleString()}</span>
-                </div>
-              )}
-              {experiment.progress !== undefined && (
-                <div className="meta-item full-width">
-                  <span className="meta-label">进度:</span>
-                  <div className="progress-bar-container">
-                    <div 
-                      className="progress-bar" 
-                      style={{ width: `${experiment.progress}%` }}
-                    ></div>
-                    <span className="progress-text">{experiment.progress.toFixed(0)}%</span>
+                
+                <p className="experiment-description">{experiment.description}</p>
+                
+                <div className="experiment-meta">
+                  <div className="meta-item">
+                    <span className="meta-label">创建时间:</span>
+                    <span className="meta-value">{new Date(experiment.created_at).toLocaleString()}</span>
                   </div>
-                </div>
-              )}
-            </div>
-            
-            {experiment.performance && (
-              <div className="experiment-performance">
-                <h4>性能指标</h4>
-                <div className="performance-metrics">
-                  {experiment.performance.total_return !== undefined && (
-                    <div className="metric-item">
-                      <span className="metric-key">Total Return:</span>
-                      <span className={`metric-value ${experiment.performance.total_return >= 0 ? 'positive' : 'negative'}`}>
-                        {experiment.performance.total_return.toFixed(4)}
-                      </span>
+                  <div className="meta-item">
+                    <span className="meta-label">更新时间:</span>
+                    <span className="meta-value">{new Date(experiment.updated_at).toLocaleString()}</span>
+                  </div>
+                  {experiment.start_time && (
+                    <div className="meta-item">
+                      <span className="meta-label">开始时间:</span>
+                      <span className="meta-value">{new Date(experiment.start_time).toLocaleString()}</span>
                     </div>
                   )}
-                  {experiment.performance.annual_return !== undefined && (
-                    <div className="metric-item">
-                      <span className="metric-key">Annual Return:</span>
-                      <span className={`metric-value ${experiment.performance.annual_return >= 0 ? 'positive' : 'negative'}`}>
-                        {experiment.performance.annual_return.toFixed(4)}
-                      </span>
+                  {experiment.end_time && (
+                    <div className="meta-item">
+                      <span className="meta-label">结束时间:</span>
+                      <span className="meta-value">{new Date(experiment.end_time).toLocaleString()}</span>
                     </div>
                   )}
-                  {experiment.performance.sharpe_ratio !== undefined && (
-                    <div className="metric-item">
-                      <span className="metric-key">Sharpe Ratio:</span>
-                      <span className={`metric-value ${experiment.performance.sharpe_ratio >= 0 ? 'positive' : 'negative'}`}>
-                        {experiment.performance.sharpe_ratio.toFixed(4)}
-                      </span>
-                    </div>
-                  )}
-                  {experiment.performance.max_drawdown !== undefined && (
-                    <div className="metric-item">
-                      <span className="metric-key">Max Drawdown:</span>
-                      <span className="metric-value">
-                        {experiment.performance.max_drawdown.toFixed(4)}
-                      </span>
+                  {experiment.progress !== undefined && (
+                    <div className="meta-item full-width">
+                      <span className="meta-label">进度:</span>
+                      <div className="progress-bar-container">
+                        <div 
+                          className="progress-bar" 
+                          style={{ width: `${experiment.progress}%` }}
+                        ></div>
+                        <span className="progress-text">{experiment.progress.toFixed(0)}%</span>
+                      </div>
                     </div>
                   )}
                 </div>
                 
-                {/* Performance Chart */}
-                <div className="performance-chart" style={{ marginTop: '20px', height: '300px' }}>
-                  <ReactECharts option={getChartOption(experiment.performance)} style={{ height: '100%' }} />
-                </div>
-              </div>
-            )}
-            
-            {experiment.error && (
-              <div className="experiment-error">
-                <h4>Error</h4>
-                <p className="error-message">{experiment.error}</p>
-              </div>
-            )}
-            
-            <div className="experiment-actions">
-              <button 
-                  className="action-btn view-btn"
-                  onClick={() => navigate(`/experiments/${experiment.id}`)}
-                >
-                  查看详情
-                </button>
-                {canCreateExperiments && (experiment.status === 'created' || experiment.status === 'completed' || experiment.status === 'failed') && (
-                <button 
-                  className="action-btn run-btn"
-                  onClick={() => handleRunExperiment(experiment.id)}
-                >
-                  {experiment.status === 'created' ? '运行实验' : '重新运行'}
-                </button>
-              )}
-              <button 
-                className="action-btn logs-btn"
-                onClick={() => setShowLogs(showLogs === experiment.id ? null : experiment.id)}
-              >
-                {showLogs === experiment.id ? '隐藏日志' : '查看日志'}
-              </button>
-              {canCreateExperiments && (
-              <button 
-                className="action-btn delete-btn"
-                onClick={() => handleDeleteExperiment(experiment.id)}
-              >
-                删除
-              </button>
-              )}
-            </div>
-            
-            {showLogs === experiment.id && (
-              <div className="experiment-logs">
-                <h4>运行日志</h4>
-                <div className="logs-container">
-                  {logs[experiment.id] && logs[experiment.id].length > 0 ? (
-                    <div className="logs-content">
-                      {logs[experiment.id].map((log, index) => (
-                        <div key={index} className="log-line">
-                          {log}
+                {experiment.performance && (
+                  <div className="experiment-performance">
+                    <h4>性能指标</h4>
+                    <div className="performance-metrics">
+                      {experiment.performance.total_return !== undefined && (
+                        <div className="metric-item">
+                          <span className="metric-key">Total Return:</span>
+                          <span className={`metric-value ${experiment.performance.total_return >= 0 ? 'positive' : 'negative'}`}>
+                            {experiment.performance.total_return.toFixed(4)}
+                          </span>
                         </div>
-                      ))}
+                      )}
+                      {experiment.performance.annual_return !== undefined && (
+                        <div className="metric-item">
+                          <span className="metric-key">Annual Return:</span>
+                          <span className={`metric-value ${experiment.performance.annual_return >= 0 ? 'positive' : 'negative'}`}>
+                            {experiment.performance.annual_return.toFixed(4)}
+                          </span>
+                        </div>
+                      )}
+                      {experiment.performance.sharpe_ratio !== undefined && (
+                        <div className="metric-item">
+                          <span className="metric-key">Sharpe Ratio:</span>
+                          <span className={`metric-value ${experiment.performance.sharpe_ratio >= 0 ? 'positive' : 'negative'}`}>
+                            {experiment.performance.sharpe_ratio.toFixed(4)}
+                          </span>
+                        </div>
+                      )}
+                      {experiment.performance.max_drawdown !== undefined && (
+                        <div className="metric-item">
+                          <span className="metric-key">Max Drawdown:</span>
+                          <span className="metric-value">
+                            {experiment.performance.max_drawdown.toFixed(4)}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="no-logs">
-                      {experiment.status === 'running' ? '正在运行...' : '暂无日志'}
+                    
+                    {/* Performance Chart */}
+                    <div className="performance-chart" style={{ marginTop: '20px', height: '300px' }}>
+                      <ReactECharts option={getChartOption(experiment.performance)} style={{ height: '100%' }} />
+                    </div>
+                  </div>
+                )}
+                
+                {experiment.error && (
+                  <div className="experiment-error">
+                    <h4>Error</h4>
+                    <p className="error-message">{experiment.error}</p>
+                  </div>
+                )}
+                
+                <div className="experiment-actions">
+                  <button 
+                      className="action-btn view-btn"
+                      onClick={() => navigate(`/experiments/${experiment.id}`)}
+                    >
+                      查看详情
+                    </button>
+                    {canCreateExperiments && (experiment.status === 'created' || experiment.status === 'completed' || experiment.status === 'failed') && (
+                    <button 
+                      className="action-btn run-btn"
+                      onClick={() => handleRunExperiment(experiment.id)}
+                    >
+                      {experiment.status === 'created' ? '运行实验' : '重新运行'}
+                    </button>
+                  )}
+                  <button 
+                    className="action-btn logs-btn"
+                    onClick={() => setShowLogs(showLogs === experiment.id ? null : experiment.id)}
+                  >
+                    {showLogs === experiment.id ? '隐藏日志' : '查看日志'}
+                  </button>
+                  {canCreateExperiments && (
+                  <button 
+                    className="action-btn delete-btn"
+                    onClick={() => handleDeleteExperiment(experiment.id)}
+                  >
+                    删除
+                  </button>
+                  )}
+                </div>
+                
+                {showLogs === experiment.id && (
+                  <div className="experiment-logs">
+                    <h4>运行日志</h4>
+                    <div className="logs-container">
+                      {logs[experiment.id] && logs[experiment.id].length > 0 ? (
+                        <div className="logs-content">
+                          {logs[experiment.id].map((log, index) => (
+                            <div key={index} className="log-line">
+                              {log}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="no-logs">
+                          {experiment.status === 'running' ? '正在运行...' : '暂无日志'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="experiment-list-content">
+                <div className="experiment-list-header">
+                  <h3 className="experiment-name">{experiment.name}</h3>
+                  <div className="header-right">
+                    <span className={`experiment-status status-${experiment.status}`}>
+                      {experiment.status === 'created' && '已创建'}
+                      {experiment.status === 'pending' && '待运行'}
+                      {experiment.status === 'running' && '运行中'}
+                      {experiment.status === 'completed' && '已完成'}
+                      {experiment.status === 'failed' && '失败'}
+                      {experiment.status === 'stopped' && '已停止'}
+                      {!['created', 'pending', 'running', 'completed', 'failed', 'stopped'].includes(experiment.status) && experiment.status}
+                    </span>
+                    <div className="meta-item created-time">
+                      <span className="meta-label">创建时间:</span>
+                      <span className="meta-value">{new Date(experiment.created_at).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="experiment-description">{experiment.description}</p>
+                <div className="experiment-meta">
+                  {experiment.progress !== undefined && (
+                    <div className="meta-item">
+                      <span className="meta-label">进度:</span>
+                      <span className="progress-text">{experiment.progress.toFixed(0)}%</span>
                     </div>
                   )}
                 </div>
+                <div className="experiment-actions">
+                  <button 
+                    className="action-btn view-btn"
+                    onClick={() => navigate(`/experiments/${experiment.id}`)}
+                  >
+                    查看详情
+                  </button>
+                  {canCreateExperiments && (experiment.status === 'created' || experiment.status === 'completed' || experiment.status === 'failed') && (
+                    <button 
+                      className="action-btn run-btn"
+                      onClick={() => handleRunExperiment(experiment.id)}
+                    >
+                      {experiment.status === 'created' ? '运行实验' : '重新运行'}
+                    </button>
+                  )}
+                  <button 
+                    className="action-btn logs-btn"
+                    onClick={() => setShowLogs(showLogs === experiment.id ? null : experiment.id)}
+                  >
+                    {showLogs === experiment.id ? '隐藏日志' : '查看日志'}
+                  </button>
+                  {canCreateExperiments && (
+                    <button 
+                      className="action-btn delete-btn"
+                      onClick={() => handleDeleteExperiment(experiment.id)}
+                    >
+                      删除
+                    </button>
+                  )}
+                </div>
+                {showLogs === experiment.id && (
+                  <div className="experiment-logs">
+                    <h4>运行日志</h4>
+                    <div className="logs-container">
+                      {logs[experiment.id] && logs[experiment.id].length > 0 ? (
+                        <div className="logs-content">
+                          {logs[experiment.id].map((log, index) => (
+                            <div key={index} className="log-line">
+                              {log}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="no-logs">
+                          {experiment.status === 'running' ? '正在运行...' : '暂无日志'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

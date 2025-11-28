@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session, joinedload
 from app.models.factor import Factor, FactorGroup
 from app.schemas.factor import FactorCreate, FactorUpdate, FactorGroupCreate, FactorGroupUpdate
+from app.services.qlib_factor import QlibFactorService
 
 # Factor Group functions
 def create_factor_group(db: Session, factor_group: FactorGroupCreate):

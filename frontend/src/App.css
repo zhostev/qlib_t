@@ -29,7 +29,7 @@
 
 .container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 24px;
 }
@@ -762,7 +762,7 @@ a:hover {
   font-style: normal;
 }
 
-.experiment-actions {
+.recent-experiment-item .experiment-actions {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1100,19 +1100,25 @@ a:hover {
 
 .experiment-actions {
   display: flex;
-  gap: 10px;
+  flex-direction: row;
+  gap: 8px;
   margin-top: auto;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 .action-btn {
-  padding: 10px 15px;
+  padding: 0.4em 0.8em;
   border: none;
-  border-radius: 6px;
-  font-size: 0.95rem;
+  border-radius: 4px;
+  font-size: 0.85em;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
-  flex: 1;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 80px;
   text-align: center;
 }
 

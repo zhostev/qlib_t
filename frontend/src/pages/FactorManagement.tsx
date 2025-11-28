@@ -181,16 +181,17 @@ const FactorManagement: React.FC = () => {
   const groupedFactors = groupFactors()
 
   return (
-    <div className="factor-management">
-      <div className="page-header">
-        <h1>因子管理</h1>
-        <button 
-          className="btn btn-primary" 
-          onClick={() => setShowForm(true)}
-        >
-          创建因子
-        </button>
-      </div>
+    <div className="container">
+      <div className="factor-management">
+        <div className="page-header">
+          <h1>因子管理</h1>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => setShowForm(true)}
+          >
+            创建因子
+          </button>
+        </div>
 
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
@@ -429,6 +430,7 @@ const FactorManagement: React.FC = () => {
         )}
       </div>
     </div>
+  </div>
   )
 }
 

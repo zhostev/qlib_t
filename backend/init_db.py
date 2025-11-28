@@ -68,28 +68,61 @@ for group_data in factor_groups:
     else:
         print(f"Factor group {group_data['name']} already exists")
 
-# Create factors for each group (skip if group_id column doesn't exist)
+# Import Qlib factor service
+from app.services.qlib_factor import QlibFactorService
+
+# Create factors for each group using actual Qlib factor definitions (skip if group_id column doesn't exist)
 try:
+    # Get all Qlib factors
+    qlib_factors = QlibFactorService.get_all_qlib_factors()
+    
+    # Get factor groups
     groups = db.query(FactorGroup).all()
+    
     for group in groups:
+        # Determine which Qlib factors to use for this group
+        if "158" in group.name:
+            qlib_factors_list = qlib_factors["alpha158"]
+        elif "360" in group.name:
+            qlib_factors_list = qlib_factors["alpha360"]
+        else:
+            continue
+        
+        # Update group factor count
+        group.factor_count = len(qlib_factors_list)
+        db.commit()
+        
         # Check if factors already exist for this group
         existing_factor_count = db.query(Factor).filter(Factor.group_id == group.id).count()
-        if existing_factor_count < group.factor_count:
+        
+        if existing_factor_count < len(qlib_factors_list):
             # Create missing factors
-            for i in range(existing_factor_count + 1, group.factor_count + 1):
-                factor_name = f"{group.name}_factor_{i}"
-                existing_factor = db.query(Factor).filter(Factor.name == factor_name).first()
+            created_count = 0
+            for factor_def in qlib_factors_list:
+                # Check if factor already exists
+                existing_factor = db.query(Factor).filter(
+                    Factor.name == factor_def["name"],
+                    Factor.group_id == group.id
+                ).first()
+                
                 if not existing_factor:
+                    # Create new factor
                     factor = Factor(
-                        name=factor_name,
-                        description=f"{group.name}中的第{i}个因子",
-                        formula=f"factor_{i} = (close - open) / open * {i}",
-                        type="technical",
+                        name=factor_def["name"],
+                        description=factor_def["description"],
+                        formula=factor_def["formula"],
+                        type=factor_def["type"],
+                        status=factor_def["status"],
                         group_id=group.id
                     )
                     db.add(factor)
-            db.commit()
-            print(f"Created {group.factor_count - existing_factor_count} factors for {group.name}")
+                    created_count += 1
+            
+            if created_count > 0:
+                db.commit()
+                print(f"Created {created_count} actual Qlib factors for {group.name}")
+            else:
+                print(f"All actual Qlib factors already exist for {group.name}")
         else:
             print(f"All factors already exist for {group.name}")
 except Exception as e:
