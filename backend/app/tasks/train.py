@@ -80,12 +80,12 @@ async def train_model_task(experiment_id: int, config: dict, db):
                 elif isinstance(config, list):
                     return [convert_timestamps(item) for item in config]
                 elif isinstance(config, str) and 'T' in config and ('Z' in config or '+' in config or '-' in config):
-                    # 移除时区信息，转换为YYYY-MM-DD HH:MM:SS格式
+                    # 移除时区信息，转换为YYYY-MM-DD格式（双重保障）
                     try:
                         # 解析带时区的时间戳
                         dt = pd.to_datetime(config)
-                        # 转换为不带时区的时间戳
-                        return dt.strftime('%Y-%m-%d %H:%M:%S')
+                        # 转换为不带时区的日期格式
+                        return dt.strftime('%Y-%m-%d')
                     except:
                         # 如果解析失败，返回原始字符串
                         return config
