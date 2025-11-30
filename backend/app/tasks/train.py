@@ -129,7 +129,43 @@ async def train_model_task(experiment_id: int, config: dict, db):
                 __import__(model_config['module_path'], fromlist=[model_config['class']]),
                 model_config['class']
             )
-            model = model_class(**model_config.get('kwargs', {}))
+            
+            # 添加GPU支持
+            kwargs = model_config.get('kwargs', {})
+            
+            # 根据模型类型添加GPU支持
+            model_name = model_config['class'].lower()
+            
+            # 检查是否在配置中指定了use_gpu
+            use_gpu = kwargs.pop('use_gpu', False) or kwargs.pop('gpu', False)
+            
+            if use_gpu:
+                log_and_save("GPU support enabled for model training")
+                
+                # 根据不同模型库添加GPU支持
+                if model_name == 'xgboost' or model_name == 'xgboostmodel' or 'xgboost' in model_config['module_path']:
+                    # XGBoost GPU支持
+                    kwargs['tree_method'] = kwargs.get('tree_method', 'gpu_hist')
+                    kwargs['gpu_id'] = kwargs.get('gpu_id', 0)
+                    log_and_save(f"XGBoost configured with GPU support: tree_method={kwargs['tree_method']}, gpu_id={kwargs['gpu_id']}")
+                elif model_name == 'lgbmodel' or 'lightgbm' in model_config['module_path']:
+                    # LightGBM GPU支持
+                    kwargs['device'] = 'gpu'
+                    kwargs['gpu_platform_id'] = kwargs.get('gpu_platform_id', 0)
+                    kwargs['gpu_device_id'] = kwargs.get('gpu_device_id', 0)
+                    log_and_save(f"LightGBM configured with GPU support: device={kwargs['device']}")
+                elif 'torch' in model_config['module_path'] or 'pytorch' in model_config['module_path']:
+                    # PyTorch模型支持，会在模型内部处理
+                    log_and_save("PyTorch model detected, GPU support handled internally")
+                elif 'tensorflow' in model_config['module_path'] or 'tf' in model_config['module_path']:
+                    # TensorFlow模型支持，会在模型内部处理
+                    log_and_save("TensorFlow model detected, GPU support handled internally")
+                else:
+                    log_and_save(f"Unknown model type {model_name}, GPU support may not be available")
+            else:
+                log_and_save("Using CPU for model training")
+            
+            model = model_class(**kwargs)
             log_and_save(f"Model {model_config['class']} loaded successfully")
             
             # 更新进度
@@ -233,11 +269,61 @@ async def train_model_task(experiment_id: int, config: dict, db):
                                     annual_return = (1 + daily_returns_by_date.mean()) ** 252 - 1
                                     sharpe_ratio = daily_returns_by_date.mean() / daily_returns_by_date.std() * np.sqrt(252) if daily_returns_by_date.std() > 0 else 0
                                     
+                                    # 计算月度收益
+                                    monthly_returns = daily_returns_by_date.resample('M').apply(lambda x: (1 + x).prod() - 1)
+                                    monthly_returns_formatted = {}
+                                    for date, value in monthly_returns.to_dict().items():
+                                        if isinstance(date, pd.Timestamp):
+                                            date_str = date.strftime('%Y-%m')
+                                        else:
+                                            date_str = str(date)
+                                        if not pd.isna(value):
+                                            monthly_returns_formatted[date_str] = float(value)
+                                    
+                                    # 计算回撤曲线
+                                    def calculate_drawdown_curve(returns):
+                                        cum_returns = (1 + returns).cumprod()
+                                        peak = cum_returns.expanding(min_periods=1).max()
+                                        drawdown = (cum_returns - peak) / peak
+                                        return drawdown
+                                    
+                                    drawdown_curve = calculate_drawdown_curve(daily_returns_by_date)
+                                    drawdown_curve_formatted = {}
+                                    for date, value in drawdown_curve.to_dict().items():
+                                        if isinstance(date, pd.Timestamp):
+                                            date_str = date.strftime('%Y-%m-%d')
+                                        else:
+                                            date_str = str(date)
+                                        if not pd.isna(value):
+                                            drawdown_curve_formatted[date_str] = float(value)
+                                    
+                                    # 计算胜率
+                                    win_rate = (daily_returns_by_date > 0).mean()
+                                    
+                                    # 计算平均盈利和平均亏损
+                                    positive_returns = daily_returns_by_date[daily_returns_by_date > 0]
+                                    negative_returns = daily_returns_by_date[daily_returns_by_date < 0]
+                                    avg_win = positive_returns.mean() if len(positive_returns) > 0 else 0
+                                    avg_loss = negative_returns.mean() if len(negative_returns) > 0 else 0
+                                    
+                                    # 计算收益分布（分位数）
+                                    return_distribution = {
+                                        'min': float(daily_returns_by_date.min()),
+                                        '25th': float(daily_returns_by_date.quantile(0.25)),
+                                        'median': float(daily_returns_by_date.median()),
+                                        '75th': float(daily_returns_by_date.quantile(0.75)),
+                                        'max': float(daily_returns_by_date.max())
+                                    }
+                                    
                                     # 更新性能指标
                                     performance['total_return'] = float(total_return)
                                     performance['max_drawdown'] = float(max_drawdown)
                                     performance['annual_return'] = float(annual_return)
                                     performance['sharpe_ratio'] = float(sharpe_ratio)
+                                    performance['win_rate'] = float(win_rate)
+                                    performance['avg_win'] = float(avg_win)
+                                    performance['avg_loss'] = float(avg_loss)
+                                    performance['return_distribution'] = return_distribution
                                     
                                     # 生成累计收益数据用于图表
                                     cumulative_returns_formatted = {}
@@ -250,6 +336,8 @@ async def train_model_task(experiment_id: int, config: dict, db):
                                             cumulative_returns_formatted[date_str] = float(value)
                                     
                                     performance['cumulative_returns'] = cumulative_returns_formatted
+                                    performance['monthly_returns'] = monthly_returns_formatted
+                                    performance['drawdown_curve'] = drawdown_curve_formatted
                                     
                                     log_and_save(f"Performance calculation completed: Total Return = {total_return:.4f}, Max Drawdown = {max_drawdown:.4f}, Annual Return = {annual_return:.4f}, Sharpe Ratio = {sharpe_ratio:.4f}, Cumulative returns points = {len(cumulative_returns_formatted)}")
                                 else:

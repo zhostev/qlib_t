@@ -46,6 +46,13 @@ def run_experiment(experiment_id: int, db: Session = Depends(get_db), current_us
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
     
+    # Update experiment status to pending immediately
+    experiment.status = "pending"
+    experiment.progress = 0.0
+    experiment.error = None
+    experiment.logs = None
+    db.commit()
+    
     # Create a task instead of directly running
     task = TaskService.create_task(db=db, experiment_id=experiment_id, task_type="train")
     

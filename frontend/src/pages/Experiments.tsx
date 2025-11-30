@@ -144,7 +144,7 @@ const Experiments: React.FC = () => {
         return () => clearInterval(interval)
     }, [])
 
-  // Fetch logs for expanded experiments every 3 seconds
+  // Fetch logs for expanded experiments every 1 second for better real-time updates
   useEffect(() => {
     if (showLogs === null) return
 
@@ -164,12 +164,25 @@ const Experiments: React.FC = () => {
       }
     }
 
-    // Fetch logs immediately and then every 3 seconds
+    // Fetch logs immediately and then every 1 second for better real-time updates
     fetchLogs()
-    const logsInterval = setInterval(fetchLogs, 3000)
+    const logsInterval = setInterval(fetchLogs, 1000)
 
     return () => clearInterval(logsInterval)
   }, [showLogs])
+
+  // Auto-expand logs when experiment status changes to running
+  useEffect(() => {
+    if (experiments.length > 0) {
+      const runningExperiments = experiments.filter(exp => exp.status === 'running' || exp.status === 'pending')
+      runningExperiments.forEach(exp => {
+        // Auto-expand logs for running experiments
+        if (showLogs !== exp.id) {
+          setShowLogs(exp.id)
+        }
+      })
+    }
+  }, [experiments, showLogs])
 
   const handleConfigChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const configId = parseInt(e.target.value)
@@ -236,9 +249,18 @@ const Experiments: React.FC = () => {
     try {
       await runExperiment(id)
       
-      // Refresh experiments list
+      // Immediately refresh experiments list to show pending status
       const experimentsData = await getExperiments()
       setExperiments(experimentsData)
+      
+      // Set a short interval to refresh the list again after a delay to catch status changes
+      const refreshInterval = setInterval(async () => {
+        const latestData = await getExperiments()
+        setExperiments(latestData)
+      }, 2000)
+      
+      // Clear the interval after 10 seconds
+      setTimeout(() => clearInterval(refreshInterval), 10000)
     } catch (err: any) {
       console.error('Failed to run experiment:', err)
       if (err.response?.status === 403) {
@@ -275,7 +297,7 @@ const Experiments: React.FC = () => {
   }
 
   // Prepare chart data if performance is available
-  const getChartOption = (performance: any) => {
+  const getChartOption = (performance: any, chartType: 'cumulative' | 'drawdown' | 'monthly' = 'cumulative') => {
     if (!performance) {
       return {
         title: {
@@ -301,13 +323,54 @@ const Experiments: React.FC = () => {
       }
     }
 
-    const cumulativeReturns = performance.cumulative_returns
-    const dates = Object.keys(cumulativeReturns)
-    const values = Object.values(cumulativeReturns) as number[]
+    let title, data, dates, values, seriesType, yAxisFormatter, tooltipFormatter, seriesColor;
+
+    switch (chartType) {
+      case 'drawdown':
+        title = '回撤曲线';
+        data = performance.drawdown_curve || {};
+        seriesType = 'line';
+        seriesColor = '#ef4444';
+        yAxisFormatter = '{value}%';
+        tooltipFormatter = (params: any) => {
+          const date = params[0].axisValue;
+          const value = params[0].value;
+          return `${date}<br/>Drawdown: ${(value * 100).toFixed(2)}%`;
+        };
+        break;
+      case 'monthly':
+        title = '月度收益';
+        data = performance.monthly_returns || {};
+        seriesType = 'bar';
+        seriesColor = '#10b981';
+        yAxisFormatter = '{value}%';
+        tooltipFormatter = (params: any) => {
+          const date = params[0].axisValue;
+          const value = params[0].value;
+          return `${date}<br/>Monthly Return: ${(value * 100).toFixed(2)}%`;
+        };
+        break;
+      case 'cumulative':
+      default:
+        title = '累计收益曲线';
+        data = performance.cumulative_returns || {};
+        seriesType = 'line';
+        seriesColor = '#646cff';
+        yAxisFormatter = '{value}%';
+        tooltipFormatter = (params: any) => {
+          const date = params[0].axisValue;
+          const value = params[0].value;
+          return `${date}<br/>Cumulative Return: ${(value * 100).toFixed(2)}%`;
+        };
+        break;
+    }
+
+    dates = Object.keys(data);
+    values = Object.values(data) as number[];
 
     return {
       title: {
-        text: 'Cumulative Returns',
+        text: title,
         left: 'center',
         textStyle: {
           fontSize: 14
@@ -315,35 +378,52 @@ const Experiments: React.FC = () => {
       },
       tooltip: {
         trigger: 'axis',
-        formatter: (params: any) => {
-          const date = params[0].axisValue
-          const value = params[0].value
-          return `${date}<br/>Cumulative Return: ${(value * 100).toFixed(2)}%`
-        }
+        formatter: tooltipFormatter
       },
       xAxis: {
         type: 'category',
         data: dates,
         axisLabel: {
-          rotate: 45,
+          rotate: chartType === 'monthly' ? 0 : 45,
           fontSize: 10
         }
       },
       yAxis: {
         type: 'value',
         axisLabel: {
-          formatter: '{value}%',
+          formatter: yAxisFormatter,
           fontSize: 10
         }
       },
       series: [
         {
           data: values.map(v => (v * 100).toFixed(2)),
-          type: 'line',
-          smooth: true,
+          type: seriesType,
+          smooth: seriesType === 'line',
           itemStyle: {
-            color: '#646cff'
-          }
+            color: seriesColor,
+            ...(seriesType === 'bar' && {
+              color: (params: any) => {
+                const value = parseFloat(params.value);
+                return value >= 0 ? '#10b981' : '#ef4444';
+              }
+            })
+          },
+          ...(seriesType === 'line' && {
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: seriesColor + '80' },
+                  { offset: 1, color: seriesColor + '10' }
+                ]
+              }
+            }
+          })
         }
       ]
     }
@@ -515,43 +595,140 @@ const Experiments: React.FC = () => {
                   <div className="experiment-performance">
                     <h4>性能指标</h4>
                     <div className="performance-metrics">
-                      {experiment.performance.total_return !== undefined && (
-                        <div className="metric-item">
-                          <span className="metric-key">Total Return:</span>
-                          <span className={`metric-value ${experiment.performance.total_return >= 0 ? 'positive' : 'negative'}`}>
-                            {experiment.performance.total_return.toFixed(4)}
-                          </span>
+                      <div className="metrics-grid">
+                        {/* 核心指标 */}
+                        <div className="metrics-section">
+                          <h5>核心指标</h5>
+                          <div className="metrics-row">
+                            {experiment.performance.total_return !== undefined && (
+                              <div className="metric-item">
+                                <span className="metric-key">总收益</span>
+                                <span className={`metric-value ${experiment.performance.total_return >= 0 ? 'positive' : 'negative'}`}>
+                                  {(experiment.performance.total_return * 100).toFixed(2)}%
+                                </span>
+                              </div>
+                            )}
+                            {experiment.performance.annual_return !== undefined && (
+                              <div className="metric-item">
+                                <span className="metric-key">年化收益</span>
+                                <span className={`metric-value ${experiment.performance.annual_return >= 0 ? 'positive' : 'negative'}`}>
+                                  {(experiment.performance.annual_return * 100).toFixed(2)}%
+                                </span>
+                              </div>
+                            )}
+                            {experiment.performance.sharpe_ratio !== undefined && (
+                              <div className="metric-item">
+                                <span className="metric-key">夏普比率</span>
+                                <span className={`metric-value ${experiment.performance.sharpe_ratio >= 0 ? 'positive' : 'negative'}`}>
+                                  {experiment.performance.sharpe_ratio.toFixed(2)}
+                                </span>
+                              </div>
+                            )}
+                            {experiment.performance.max_drawdown !== undefined && (
+                              <div className="metric-item">
+                                <span className="metric-key">最大回撤</span>
+                                <span className="metric-value">
+                                  {(experiment.performance.max_drawdown * 100).toFixed(2)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* 交易指标 */}
+                        <div className="metrics-section">
+                          <h5>交易指标</h5>
+                          <div className="metrics-row">
+                            {experiment.performance.win_rate !== undefined && (
+                              <div className="metric-item">
+                                <span className="metric-key">胜率</span>
+                                <span className={`metric-value ${experiment.performance.win_rate >= 0.5 ? 'positive' : 'negative'}`}>
+                                  {(experiment.performance.win_rate * 100).toFixed(2)}%
+                                </span>
+                              </div>
+                            )}
+                            {experiment.performance.avg_win !== undefined && (
+                              <div className="metric-item">
+                                <span className="metric-key">平均盈利</span>
+                                <span className={`metric-value ${experiment.performance.avg_win >= 0 ? 'positive' : 'negative'}`}>
+                                  {(experiment.performance.avg_win * 100).toFixed(2)}%
+                                </span>
+                              </div>
+                            )}
+                            {experiment.performance.avg_loss !== undefined && (
+                              <div className="metric-item">
+                                <span className="metric-key">平均亏损</span>
+                                <span className={`metric-value ${experiment.performance.avg_loss >= 0 ? 'positive' : 'negative'}`}>
+                                  {(experiment.performance.avg_loss * 100).toFixed(2)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* 收益分布 */}
+                      {experiment.performance.return_distribution && (
+                        <div className="metrics-section">
+                          <h5>收益分布</h5>
+                          <div className="return-distribution">
+                            <div className="distribution-item">
+                              <span className="dist-key">最小值</span>
+                              <span className="dist-value">{(experiment.performance.return_distribution.min * 100).toFixed(2)}%</span>
+                            </div>
+                            <div className="distribution-item">
+                              <span className="dist-key">25%分位数</span>
+                              <span className="dist-value">{(experiment.performance.return_distribution['25th'] * 100).toFixed(2)}%</span>
+                            </div>
+                            <div className="distribution-item">
+                              <span className="dist-key">中位数</span>
+                              <span className="dist-value">{(experiment.performance.return_distribution.median * 100).toFixed(2)}%</span>
+                            </div>
+                            <div className="distribution-item">
+                              <span className="dist-key">75%分位数</span>
+                              <span className="dist-value">{(experiment.performance.return_distribution['75th'] * 100).toFixed(2)}%</span>
+                            </div>
+                            <div className="distribution-item">
+                              <span className="dist-key">最大值</span>
+                              <span className="dist-value">{(experiment.performance.return_distribution.max * 100).toFixed(2)}%</span>
+                            </div>
+                          </div>
                         </div>
                       )}
-                      {experiment.performance.annual_return !== undefined && (
-                        <div className="metric-item">
-                          <span className="metric-key">Annual Return:</span>
-                          <span className={`metric-value ${experiment.performance.annual_return >= 0 ? 'positive' : 'negative'}`}>
-                            {experiment.performance.annual_return.toFixed(4)}
-                          </span>
+                      
+                      {/* Performance Charts */}
+                      <div className="performance-charts">
+                        <h5>回测结果图表</h5>
+                        <div className="charts-container">
+                          {/* Cumulative Returns Chart */}
+                          <div className="chart-item">
+                            <h6>累计收益曲线</h6>
+                            <div className="chart-wrapper" style={{ height: '250px' }}>
+                              <ReactECharts option={getChartOption(experiment.performance, 'cumulative')} style={{ height: '100%' }} />
+                            </div>
+                          </div>
+                          
+                          {/* Drawdown Curve Chart */}
+                          {experiment.performance.drawdown_curve && Object.keys(experiment.performance.drawdown_curve).length > 0 && (
+                            <div className="chart-item">
+                              <h6>回撤曲线</h6>
+                              <div className="chart-wrapper" style={{ height: '250px' }}>
+                                <ReactECharts option={getChartOption(experiment.performance, 'drawdown')} style={{ height: '100%' }} />
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Monthly Returns Chart */}
+                          {experiment.performance.monthly_returns && Object.keys(experiment.performance.monthly_returns).length > 0 && (
+                            <div className="chart-item">
+                              <h6>月度收益</h6>
+                              <div className="chart-wrapper" style={{ height: '250px' }}>
+                                <ReactECharts option={getChartOption(experiment.performance, 'monthly')} style={{ height: '100%' }} />
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {experiment.performance.sharpe_ratio !== undefined && (
-                        <div className="metric-item">
-                          <span className="metric-key">Sharpe Ratio:</span>
-                          <span className={`metric-value ${experiment.performance.sharpe_ratio >= 0 ? 'positive' : 'negative'}`}>
-                            {experiment.performance.sharpe_ratio.toFixed(4)}
-                          </span>
-                        </div>
-                      )}
-                      {experiment.performance.max_drawdown !== undefined && (
-                        <div className="metric-item">
-                          <span className="metric-key">Max Drawdown:</span>
-                          <span className="metric-value">
-                            {experiment.performance.max_drawdown.toFixed(4)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Performance Chart */}
-                    <div className="performance-chart" style={{ marginTop: '20px', height: '300px' }}>
-                      <ReactECharts option={getChartOption(experiment.performance)} style={{ height: '100%' }} />
+                      </div>
                     </div>
                   </div>
                 )}
