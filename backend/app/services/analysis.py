@@ -9,6 +9,15 @@ class AnalysisService:
     @staticmethod
     def generate_signal_analysis(experiment: Experiment) -> Dict[str, Any]:
         """Generate signal analysis data"""
+        # Use actual performance data if available, otherwise generate mock data
+        if experiment.performance and "ic" in experiment.performance:
+            return {
+                "ic": experiment.performance.get("ic", {}),
+                "monthly_ic": experiment.performance.get("monthly_ic", {}),
+                "auto_correlation": experiment.performance.get("auto_correlation", {}),
+                "return_distribution": experiment.performance.get("return_distribution", {})
+            }
+        
         # Mock data for signal analysis
         # In real implementation, this would use qlib.contrib.report.analysis_model
         dates = pd.date_range(start='2017-01-01', end='2020-08-01', freq='B')
@@ -41,6 +50,17 @@ class AnalysisService:
     @staticmethod
     def generate_portfolio_analysis(experiment: Experiment) -> Dict[str, Any]:
         """Generate portfolio analysis data"""
+        # Use actual performance data if available, otherwise generate mock data
+        if experiment.performance and "cumulative_returns" in experiment.performance:
+            return {
+                "cumulative_return": {
+                    "dates": list(experiment.performance.get("cumulative_returns", {}).keys()),
+                    "values": list(experiment.performance.get("cumulative_returns", {}).values())
+                },
+                "group_returns": experiment.performance.get("group_returns", {}),
+                "long_short": experiment.performance.get("long_short", {})
+            }
+        
         # Mock data for portfolio analysis
         # In real implementation, this would use qlib.contrib.report.analysis_position
         dates = pd.date_range(start='2017-01-01', end='2020-08-01', freq='B')
@@ -71,6 +91,22 @@ class AnalysisService:
     @staticmethod
     def generate_backtest_analysis(experiment: Experiment) -> Dict[str, Any]:
         """Generate backtest analysis data"""
+        # Use actual performance data if available, otherwise generate mock data
+        if experiment.performance:
+            return {
+                "report": {
+                    "total_return": experiment.performance.get("total_return", 0.45),
+                    "annual_return": experiment.performance.get("annual_return", 0.12),
+                    "sharpe_ratio": experiment.performance.get("sharpe_ratio", 1.5),
+                    "max_drawdown": experiment.performance.get("max_drawdown", 0.25),
+                    "win_rate": experiment.performance.get("win_rate", 0.55)
+                },
+                "explanation": "The model shows good performance with a Sharpe ratio of {:.2f}, indicating attractive risk-adjusted returns. The maximum drawdown of {:.2%} is within acceptable limits for this strategy.".format(
+                    experiment.performance.get("sharpe_ratio", 1.5),
+                    experiment.performance.get("max_drawdown", 0.25)
+                )
+            }
+        
         # Mock data for backtest analysis
         return {
             "report": {

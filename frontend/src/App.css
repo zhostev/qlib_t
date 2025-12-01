@@ -31,56 +31,56 @@
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 16px;
 }
 
 /* 响应式容器 */
 @media (max-width: 1200px) {
   .container {
     max-width: 100%;
-    padding: 20px;
+    padding: 14px;
   }
 }
 
 @media (max-width: 768px) {
   .container {
-    padding: 16px;
+    padding: 12px;
   }
 }
 
 @media (max-width: 480px) {
   .container {
-    padding: 12px;
+    padding: 8px;
   }
 }
 
 /* 通用卡片样式优化 */
 .card {
   background-color: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 /* 通用按钮样式优化 */
 .btn {
-  padding: 10px 20px;
+  padding: 8px 16px;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .btn-primary {
@@ -91,7 +91,7 @@
 .btn-primary:hover {
   background-color: #535bf2;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(100, 108, 255, 0.4);
+  box-shadow: 0 3px 8px rgba(100, 108, 255, 0.3);
 }
 
 .btn-secondary {
@@ -112,7 +112,7 @@
 .btn-danger:hover {
   background-color: #e53935;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+  box-shadow: 0 3px 8px rgba(244, 67, 54, 0.3);
 }
 
 .btn-success {
@@ -123,18 +123,18 @@
 .btn-success:hover {
   background-color: #43a047;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  box-shadow: 0 3px 8px rgba(76, 175, 80, 0.3);
 }
 
 /* 按钮大小变体 */
 .btn-sm {
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 4px 10px;
+  font-size: 11px;
 }
 
 .btn-lg {
-  padding: 12px 24px;
-  font-size: 16px;
+  padding: 10px 20px;
+  font-size: 14px;
 }
 
 /* 按钮禁用状态 */
@@ -441,14 +441,14 @@ a:hover {
   width: 100%;
   border-collapse: collapse;
   background-color: white;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
 }
 
 .models-table th,
 .models-table td {
-  padding: 16px;
+  padding: 12px 14px;
   text-align: left;
   border-bottom: 1px solid #e0e0e0;
 }
@@ -457,7 +457,7 @@ a:hover {
   background-color: #f8f9fa;
   font-weight: 600;
   color: #333;
-  font-size: 14px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -695,7 +695,7 @@ a:hover {
 
 .data-table th,
 .data-table td {
-  padding: 12px 16px;
+  padding: 10px 12px;
   text-align: left;
   border-bottom: 1px solid #e0e0e0;
 }
@@ -704,7 +704,7 @@ a:hover {
   background-color: #f8f9fa;
   font-weight: 600;
   color: #333;
-  font-size: 14px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
