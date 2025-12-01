@@ -93,3 +93,8 @@ def get_backtest_analysis(experiment_id: int, db: Session = Depends(get_db), cur
         raise HTTPException(status_code=404, detail="Experiment not found")
     
     return AnalysisService.generate_backtest_analysis(experiment)
+
+@router.get("/profit-loss")
+def get_profit_loss(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    """Get profit loss data for all experiments"""
+    return AnalysisService.generate_profit_loss_data()

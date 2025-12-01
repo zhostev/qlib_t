@@ -1,8 +1,6 @@
-import qlib
-from qlib.data import D
-from qlib.config import REG_CN
-from typing import List, Dict, Any
 import logging
+from typing import List, Dict, Any
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -10,6 +8,30 @@ logger = logging.getLogger(__name__)
 
 class QLibService:
     _initialized = False
+    _qlib = None
+    _D = None
+    _REG_CN = None
+    
+    @classmethod
+    def _try_import_qlib(cls) -> bool:
+        """
+        Try to import QLib modules
+        
+        Returns:
+            bool: True if import successful, False otherwise
+        """
+        try:
+            import qlib
+            from qlib.data import D
+            from qlib.config import REG_CN
+            
+            cls._qlib = qlib
+            cls._D = D
+            cls._REG_CN = REG_CN
+            return True
+        except ImportError as e:
+            logger.error(f"Failed to import QLib modules: {e}")
+            return False
     
     @classmethod
     def init_qlib(cls, provider_uri: str = "/home/idea/code/qlib_t/data/cn_data", force: bool = False) -> bool:
@@ -28,13 +50,41 @@ class QLibService:
             return True
         
         try:
+            # Try to import QLib modules if not already imported
+            if cls._qlib is None:
+                if not cls._try_import_qlib():
+                    return False
+            
             logger.info(f"Initializing QLib with provider_uri: {provider_uri}")
-            qlib.init(provider_uri=provider_uri, region=REG_CN)
-            cls._initialized = True
-            logger.info("QLib initialized successfully")
-            return True
+            
+            # Check if provider_uri exists
+            if not os.path.exists(provider_uri):
+                logger.warning(f"QLib data directory not found: {provider_uri}")
+                logger.info(f"Creating QLib data directory: {provider_uri}")
+                os.makedirs(provider_uri, exist_ok=True)
+            
+            # Try different initialization methods
+            try:
+                # Method 1: Using qlib.init
+                cls._qlib.init(provider_uri=provider_uri, region=cls._REG_CN)
+                cls._initialized = True
+                logger.info("QLib initialized successfully using qlib.init")
+                return True
+            except AttributeError:
+                # Method 2: QLib might not have init method, try direct initialization
+                logger.info("QLib.init() not found, trying direct initialization")
+                # Check if data is accessible
+                try:
+                    cls._D.instruments(market="all")
+                    cls._initialized = True
+                    logger.info("QLib initialized successfully using direct initialization")
+                    return True
+                except Exception as e:
+                    logger.error(f"Failed to initialize QLib directly: {e}")
+                    return False
         except Exception as e:
             logger.error(f"Failed to initialize QLib: {e}")
+            logger.exception(e)
             return False
     
     @classmethod
@@ -49,11 +99,13 @@ class QLibService:
             List[str]: List of instruments
         """
         if not cls._initialized:
-            cls.init_qlib()
+            if not cls.init_qlib():
+                logger.warning("Failed to initialize QLib, returning default instruments")
+                return ["SH600000", "SH600001", "SZ000001", "SZ000002"]
         
         try:
-            instruments = D.instruments(market)
-            logger.info(f"Got instruments from market: {market}, type: {type(instruments)}, content: {instruments}")
+            instruments = cls._D.instruments(market)
+            logger.info(f"Got instruments from market: {market}, type: {type(instruments)}")
             
             # 处理不同类型的返回值
             if isinstance(instruments, dict):
@@ -61,7 +113,6 @@ class QLibService:
                 logger.warning(f"D.instruments()返回的是字典，尝试从instrument文件中读取股票代码")
                 
                 # 构建instrument文件路径
-                import os
                 provider_uri = os.path.expanduser("~/.qlib/qlib_data/cn_data")
                 instrument_file = os.path.join(provider_uri, "instruments", f"{market}.txt")
                 
@@ -73,7 +124,7 @@ class QLibService:
                 try:
                     # 读取instrument文件，提取股票代码
                     with open(instrument_file, 'r') as f:
-                        # 每行格式: 股票代码\t上市日期\t退市日期
+                        # 每行格式: 股票代码	上市日期	退市日期
                         # 只提取股票代码部分
                         stock_codes = [line.split('\t')[0] for line in f if line.strip()]
                     
@@ -116,7 +167,9 @@ class QLibService:
             Dict[str, Any]: Stock data in format {(date_str, field): value}
         """
         if not cls._initialized:
-            cls.init_qlib()
+            if not cls.init_qlib():
+                logger.warning("Failed to initialize QLib, returning empty stock data")
+                return {}
         
         try:
             if fields is None:
@@ -126,7 +179,7 @@ class QLibService:
             logger.info(f"正在从QLIB获取股票 {instrument} 从 {start_date} 到 {end_date} 的数据，字段: {fields}")
             
             # Get data from QLib
-            data = D.features([instrument], fields, start_date, end_date)
+            data = cls._D.features([instrument], fields, start_date, end_date)
             
             logger.info(f"从QLIB获取到股票 {instrument} 的数据，形状: {data.shape}")
             logger.debug(f"数据列: {data.columns.tolist()}")
@@ -183,18 +236,21 @@ class QLibService:
             Dict[str, Any]: Factor data
         """
         if not cls._initialized:
-            cls.init_qlib()
+            if not cls.init_qlib():
+                logger.warning("Failed to initialize QLib, returning empty factor data")
+                return {}
         
         try:
             if factors is None:
                 factors = ["MACD", "RSI", "KDJ"]
             
             # Get factor data from QLib
-            data = D.features([instrument], factors, start_date, end_date)
+            data = cls._D.features([instrument], factors, start_date, end_date)
             logger.info(f"Got factors for {instrument} from {start_date} to {end_date}")
             return data.to_dict()
         except Exception as e:
             logger.error(f"Failed to get factors: {e}")
+            logger.exception(e)
             return {}
     
     @classmethod
@@ -206,6 +262,18 @@ class QLibService:
             bool: True if initialized, False otherwise
         """
         return cls._initialized
+    
+    @classmethod
+    def is_available(cls) -> bool:
+        """
+        Check if QLib is available
+        
+        Returns:
+            bool: True if QLib is available, False otherwise
+        """
+        if cls._qlib is None:
+            return cls._try_import_qlib()
+        return True
 
 # Create a singleton instance
 qlib_service = QLibService()

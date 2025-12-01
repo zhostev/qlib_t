@@ -120,6 +120,21 @@ class AnalysisService:
         }
     
     @staticmethod
+    def generate_profit_loss_data() -> Dict[str, Any]:
+        """Generate profit loss data for all experiments"""
+        # Mock data for profit loss analysis
+        # In real implementation, this would aggregate data from all experiments
+        dates = pd.date_range(start='2017-01-01', end='2020-08-01', freq='B')
+        
+        # Generate mock profit loss data
+        profit_loss = np.cumsum(np.random.normal(0.0005, 0.02, len(dates)))
+        
+        return {
+            "dates": dates.strftime('%Y-%m-%d').tolist(),
+            "values": profit_loss.tolist()
+        }
+    
+    @staticmethod
     def get_full_analysis(experiment: Experiment) -> Dict[str, Any]:
         """Get all analysis data for an experiment"""
         return {
