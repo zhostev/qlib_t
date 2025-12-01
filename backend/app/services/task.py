@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from typing import List, Optional
 from app.models.task import Task
 from app.models.experiment import Experiment
 from app.services.analysis import AnalysisService

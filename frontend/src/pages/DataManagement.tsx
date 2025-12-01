@@ -349,14 +349,14 @@ const DataManagement: React.FC = () => {
             <Select
               id="stockCode"
               value={stockCode ? { value: stockCode, label: stockCode } : null}
-              onChange={(selectedOption) => setStockCode(selectedOption ? selectedOption.value : '')}
-              options={stockCodes.map((code) => ({ value: code, label: code }))}
+              onChange={(selectedOption: { value: string; label: string } | null) => setStockCode(selectedOption ? selectedOption.value : '')}
+              options={stockCodes.map(code => ({ value: code, label: code }))}
               placeholder="全部"
               isClearable
               className="react-select-container"
               classNamePrefix="react-select"
               styles={{
-                control: (base) => ({
+                control: (base: any) => ({
                   ...base,
                   border: '1px solid #d9d9d9',
                   borderRadius: '4px',
@@ -364,7 +364,7 @@ const DataManagement: React.FC = () => {
                   '&:hover': {
                     borderColor: '#1890ff',
                   },
-                }),
+                })
               }}
             />
           </div>
@@ -521,26 +521,26 @@ const DataManagement: React.FC = () => {
               <div className="chart-control-group">
                 <label htmlFor="chartStock">选择股票</label>
                 <Select
-                  id="chartStock"
-                  value={chartStock ? { value: chartStock, label: chartStock } : null}
-                  onChange={(selectedOption) => setChartStock(selectedOption ? selectedOption.value : '')}
-                  options={stockCodes.map((code) => ({ value: code, label: code }))}
-                  placeholder="请选择股票"
-                  isClearable
-                  className="react-select-container"
-                  classNamePrefix="react-select"
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      border: '1px solid #d9d9d9',
-                      borderRadius: '4px',
-                      boxShadow: 'none',
-                      '&:hover': {
-                        borderColor: '#1890ff',
-                      },
-                    }),
-                  }}
-                />
+              id="chartStock"
+              value={chartStock ? { value: chartStock, label: chartStock } : null}
+              onChange={(selectedOption: { value: string; label: string } | null) => setChartStock(selectedOption ? selectedOption.value : '')}
+              options={stockCodes.map(code => ({ value: code, label: code }))}
+              placeholder="请选择股票"
+              isClearable
+              className="react-select-container"
+              classNamePrefix="react-select"
+              styles={{
+                control: (base: any) => ({
+                  ...base,
+                  border: '1px solid #d9d9d9',
+                  borderRadius: '4px',
+                  boxShadow: 'none',
+                  '&:hover': {
+                    borderColor: '#1890ff',
+                  },
+                })
+              }}
+            />
               </div>
               <div className="chart-control-group">
                 <label htmlFor="chartType">图表类型</label>
