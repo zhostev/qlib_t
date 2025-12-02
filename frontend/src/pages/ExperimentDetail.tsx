@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getExperiment } from '../services/experiments'
+import { getExperiment, getFullAnalysis } from '../services/experiments'
 import { getModelVersions } from '../services/models'
 import ReactECharts from 'echarts-for-react'
 import * as yaml from 'js-yaml'
+import SignalAnalysis from '../components/SignalAnalysisChart'
+import PortfolioAnalysis from '../components/PortfolioAnalysisChart'
+import BacktestReport from '../components/BacktestReportCard'
 
 interface Experiment {
   id: number
@@ -33,6 +36,10 @@ const ExperimentDetail: React.FC = () => {
   const [experiment, setExperiment] = useState<Experiment | null>(null)
   const [models, setModels] = useState<ModelVersion[]>([])
   const [loading, setLoading] = useState(true)
+  const [analysisLoading, setAnalysisLoading] = useState(true)
+  const [isConfigExpanded, setIsConfigExpanded] = useState(false)
+  const [activeTab, setActiveTab] = useState('signal')
+  const [analysisData, setAnalysisData] = useState<any>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -40,6 +47,7 @@ const ExperimentDetail: React.FC = () => {
       if (!id) return
       
       try {
+        setLoading(true)
         const experimentData = await getExperiment(parseInt(id))
         const modelsData = await getModelVersions(parseInt(id))
         setExperiment(experimentData)
@@ -56,6 +64,25 @@ const ExperimentDetail: React.FC = () => {
 
     fetchData()
   }, [id])
+
+  // Fetch analysis data
+  useEffect(() => {
+    const fetchAnalysisData = async () => {
+      if (!id || !experiment) return
+      
+      try {
+        setAnalysisLoading(true)
+        const data = await getFullAnalysis(parseInt(id))
+        setAnalysisData(data)
+      } catch (err) {
+        console.error('Failed to fetch analysis data:', err)
+      } finally {
+        setAnalysisLoading(false)
+      }
+    }
+
+    fetchAnalysisData()
+  }, [id, experiment])
 
   if (loading) {
     return <div className="container">Loading...</div>
@@ -137,14 +164,14 @@ const ExperimentDetail: React.FC = () => {
 
   return (
     <div className="container page-transition">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="page-header">
         <h1>Experiment: {experiment.name}</h1>
         <button className="btn" onClick={() => navigate('/experiments')}>
           Back to Experiments
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+      <div className="grid-layout">
         <div className="card">
           <h3>Experiment Info</h3>
           <p><strong>Status:</strong> <span className={`experiment-status status-${experiment.status}`}>{experiment.status}</span></p>
@@ -152,7 +179,7 @@ const ExperimentDetail: React.FC = () => {
           <p><strong>Updated At:</strong> {new Date(experiment.updated_at).toLocaleString()}</p>
           <p><strong>Description:</strong> {experiment.description}</p>
           {experiment.error && (
-            <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#ffebee', borderRadius: '4px', color: '#d32f2f' }}>
+            <div className="error-message">
               <strong>Error:</strong> {experiment.error}
             </div>
           )}
@@ -170,41 +197,98 @@ const ExperimentDetail: React.FC = () => {
       </div>
 
       <div className="card" style={{ marginBottom: '20px' }}>
-        <h3>YAML Config</h3>
-        <pre style={{ backgroundColor: '#f5f5f5', padding: '15px', borderRadius: '4px', overflow: 'auto' }}>
-          {yaml.dump(experiment.config, { indent: 2 })}
-        </pre>
+        <div className="card-header">
+          <h3>YAML Config</h3>
+          <button 
+            className="btn btn-sm"
+            onClick={() => setIsConfigExpanded(!isConfigExpanded)}
+          >
+            {isConfigExpanded ? 'Collapse' : 'Expand'}
+          </button>
+        </div>
+        {isConfigExpanded && (
+          <pre className="config-pre">
+            {yaml.dump(experiment.config, { indent: 2 })}
+          </pre>
+        )}
       </div>
 
       {experiment.performance && (
         <div className="chart-container">
           <h2 className="chart-title">Performance Chart</h2>
-          <ReactECharts option={getChartOption()} style={{ height: '400px' }} />
+          <ReactECharts option={getChartOption()} style={{ height: '400px', width: '100%' }} />
         </div>
       )}
 
-      <div style={{ marginTop: '30px' }}>
+      {/* Graphical Reports Section */}
+      {experiment.status === 'completed' && (
+        <div className="card">
+          <div className="card-header">
+            <h2>Graphical Reports Analysis</h2>
+            <div className="report-tabs">
+              <button 
+                className={`tab-btn ${activeTab === 'signal' ? 'active' : ''}`}
+                onClick={() => setActiveTab('signal')}
+              >
+                Forecasting Signal Analysis
+              </button>
+              <button 
+                className={`tab-btn ${activeTab === 'portfolio' ? 'active' : ''}`}
+                onClick={() => setActiveTab('portfolio')}
+              >
+                Portfolio Analysis
+              </button>
+              <button 
+                className={`tab-btn ${activeTab === 'backtest' ? 'active' : ''}`}
+                onClick={() => setActiveTab('backtest')}
+              >
+                Backtest Return Analysis
+              </button>
+            </div>
+          </div>
+          
+          {analysisLoading ? (
+            <div className="loading-container">Loading analysis data...</div>
+          ) : analysisData ? (
+            <div className="report-content">
+              {activeTab === 'signal' && (
+                <SignalAnalysis data={analysisData.signal_analysis} />
+              )}
+              {activeTab === 'portfolio' && (
+                <PortfolioAnalysis data={analysisData.portfolio_analysis} />
+              )}
+              {activeTab === 'backtest' && (
+                <BacktestReport data={analysisData.backtest_analysis} />
+              )}
+            </div>
+          ) : (
+            <div className="error-container">Failed to load analysis data</div>
+          )}
+        </div>
+      )}
+
+      <div className="section">
         <h2>Model Versions</h2>
         {models.length > 0 ? (
           <div className="models-list">
-            <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)' }}>
-              <thead style={{ backgroundColor: '#f5f5f5' }}>
+            <table className="models-table">
+              <thead>
                 <tr>
-                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Name</th>
-                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Version</th>
-                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Created At</th>
-                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Actions</th>
+                  <th>Name</th>
+                  <th>Version</th>
+                  <th>Created At</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {models.map(model => (
                   <tr key={model.id}>
-                    <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>{model.name}</td>
-                    <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>{model.version}</td>
-                    <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>{new Date(model.created_at).toLocaleString()}</td>
-                    <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>
+                    <td>{model.name}</td>
+                    <td>{model.version}</td>
+                    <td>{new Date(model.created_at).toLocaleString()}</td>
+                    <td>
                       <button 
-                        style={{ padding: '5px 10px', backgroundColor: '#646cff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                        className="btn btn-sm"
                         onClick={() => navigate(`/models/${model.id}`)}
                       >
                         View

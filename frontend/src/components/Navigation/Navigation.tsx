@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { getUserInfo, logout, isAuthenticated } from '../../services/auth'
+import { getUserInfo, logout, isAuthenticated, getToken } from '../../services/auth'
+import type { UserInfo } from '../../services/auth'
 import './Navigation.css'
-
-interface UserInfo {
-  username: string
-  email?: string
-  full_name?: string
-  disabled?: boolean
-}
 
 const Navigation: React.FC = () => {
   const [user, setUser] = useState<string | null>(null)
@@ -97,29 +91,42 @@ const Navigation: React.FC = () => {
           <ul className="nav-menu">
             <li className="nav-item">
               <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                Dashboard
+                仪表盘
               </NavLink>
             </li>
             <li className="nav-item">
               <NavLink to="/experiments" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                Experiments
+                实验管理
               </NavLink>
             </li>
             <li className="nav-item">
               <NavLink to="/models" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                Models
+                模型管理
+              </NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/factors" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                因子管理
+              </NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/data" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                数据管理
               </NavLink>
             </li>
             <li className="nav-item">
               <NavLink to="/configs" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                Configs
+                配置管理
               </NavLink>
             </li>
-            <li className="nav-item">
-              <NavLink to="/profit-loss" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                收益情况
-              </NavLink>
-            </li>
+            {/* Admin menu item - only visible to admins */}
+            {userInfo?.role === 'admin' && (
+              <li className="nav-item">
+                <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                  系统管理
+                </NavLink>
+              </li>
+            )}
           </ul>
           <div className="nav-user">
             {isLoading ? (
@@ -130,8 +137,14 @@ const Navigation: React.FC = () => {
               <div className="user-info" onClick={(e) => e.stopPropagation()}>
                 <div 
                   className="user-avatar"
-                  onClick={toggleUserMenu}
-                  title={`Click to view ${user}'s info`}
+                  onClick={(e) => {
+                    if (userInfo?.role === 'admin') {
+                      navigate('/admin')
+                    } else {
+                      toggleUserMenu(e)
+                    }
+                  }}
+                  title={userInfo?.role === 'admin' ? "Click to go to admin page" : "Click to view user info"}
                   aria-haspopup="true"
                   aria-expanded={showUserMenu}
                 >
@@ -156,6 +169,19 @@ const Navigation: React.FC = () => {
                       )}
                     </div>
                     <div className="dropdown-divider"></div>
+                    {/* Add user management link for admins */}
+                    {userInfo?.role === 'admin' && (
+                      <button 
+                        className="user-management-btn dropdown-btn"
+                        onClick={() => {
+                          setShowUserMenu(false)
+                          navigate('/admin')
+                        }}
+                        role="menuitem"
+                      >
+                        用户管理
+                      </button>
+                    )}
                     <NavLink 
                       to="/profile" 
                       className="dropdown-btn profile-btn" 
@@ -169,7 +195,7 @@ const Navigation: React.FC = () => {
                       onClick={handleLogout}
                       role="menuitem"
                     >
-                      Logout
+                      退出登录
                     </button>
                   </div>
                 )}

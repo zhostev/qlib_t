@@ -14,43 +14,56 @@ interface ModelVersion {
   performance?: any
 }
 
-const axiosInstance = axios.create({
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+interface ModelResponse {
+  data: ModelVersion[]
+  total: number
+  page: number
+  per_page: number
+}
 
-// Add token to request headers
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = getToken()
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`
+export const getModels = async (page: number = 1, perPage: number = 10): Promise<ModelResponse> => {
+  const token = getToken()
+  const response = await axios.get(API_URL, {
+    params: { page, per_page: perPage },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
     }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
-
-export const getModels = async (): Promise<ModelVersion[]> => {
-  const response = await axiosInstance.get(API_URL)
+  })
   return response.data
 }
 
 export const getModel = async (id: number): Promise<ModelVersion> => {
-  const response = await axiosInstance.get(`${API_URL}${id}`)
+  const token = getToken()
+  const response = await axios.get(`${API_URL}${id}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }
 
-export const getModelVersions = async (experimentId?: number): Promise<ModelVersion[]> => {
+export const getModelVersions = async (experimentId?: number, page: number = 1, perPage: number = 10): Promise<ModelResponse> => {
   const url = experimentId ? `${API_URL}experiment/${experimentId}` : API_URL
-  const response = await axiosInstance.get(url)
+  const token = getToken()
+  const response = await axios.get(url, {
+    params: { page, per_page: perPage },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }
 
 export const deleteModel = async (id: number): Promise<any> => {
-  const response = await axiosInstance.delete(`${API_URL}${id}`)
+  const token = getToken()
+  const response = await axios.delete(`${API_URL}${id}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
   return response.data
 }

@@ -49,6 +49,7 @@ tags
 ./pretrain
 .idea/
 .aider*
+.trae/
 
 # Frontend dependencies
 frontend/node_modules/
@@ -198,3 +199,6 @@ out
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Custom additions
+qlib/_version.py

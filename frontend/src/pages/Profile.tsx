@@ -20,33 +20,35 @@ const Profile: React.FC = () => {
   }, [])
 
   if (loading) {
-    return <div className="loading">Loading user information...</div>
+    return <div className="loading">加载用户信息...</div>
   }
 
   return (
     <div className="container page-transition">
-      <h1>User Profile</h1>
-      <div className="profile-card">
-        <h2>Personal Information</h2>
+      <div className="page-header">
+        <h1>用户资料</h1>
+      </div>
+      <div className="card">
+        <h2>个人信息</h2>
         <div className="profile-info">
           <div className="info-item">
-            <label>Username:</label>
+            <label>用户名:</label>
             <span>{userInfo.username}</span>
           </div>
           <div className="info-item">
-            <label>Email:</label>
-            <span>{userInfo.email || 'Not provided'}</span>
+            <label>邮箱:</label>
+            <span>{userInfo.email || '未提供'}</span>
           </div>
           <div className="info-item">
-            <label>Full Name:</label>
-            <span>{userInfo.full_name || 'Not provided'}</span>
+            <label>全名:</label>
+            <span>{userInfo.full_name || '未提供'}</span>
           </div>
           <div className="info-item">
-            <label>Account Status:</label>
-            <span>{userInfo.is_active ? 'Active' : 'Inactive'}</span>
+            <label>账户状态:</label>
+            <span>{userInfo.is_active ? '活跃' : '非活跃'}</span>
           </div>
           <div className="info-item">
-            <label>Joined At:</label>
+            <label>加入时间:</label>
             <span>{new Date(userInfo.created_at).toLocaleString()}</span>
           </div>
         </div>
