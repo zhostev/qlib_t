@@ -10,9 +10,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 
-async def train_model_task(experiment_id: int, config: dict, db):
+async def train_model_task(experiment_id: int, config: dict, db, log_callback=None):
     """异步训练模型任务 - 智能训练逻辑，支持QLib和模拟训练"""
     from app.models.experiment import Experiment
+    from app.models.log import ExperimentLog
     
     # 获取实验对象
     experiment = db.query(Experiment).filter(Experiment.id == experiment_id).first()
@@ -20,57 +21,78 @@ async def train_model_task(experiment_id: int, config: dict, db):
         logger.error(f"Experiment with id {experiment_id} not found")
         return
     
+    # 定义简单的日志记录函数，用于异常处理
+    async def simple_log(message, level="info"):
+        """简单的日志记录函数"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        logger.info(f"[{timestamp}] {message}")
+        
+        # 创建新的日志记录
+        new_log = ExperimentLog(
+            experiment_id=experiment_id,
+            message=message,
+            level=level
+        )
+        db.add(new_log)
+        db.commit()
+    
     try:
-        # 初始化日志
-        log_entries = []
-
-        def log_and_save(message):
+        async def log_and_save(message, level="info"):
             """记录日志并保存到实验日志中"""
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            log_entry = f"[{timestamp}] {message}\n"
-            log_entries.append(log_entry)
+            log_entry = f"[{timestamp}] {message}"
             logger.info(message)
             
-            # 更新实验日志
-            experiment.logs = ''.join(log_entries)
+            # 创建新的日志记录
+            new_log = ExperimentLog(
+                experiment_id=experiment_id,
+                message=message,
+                level=level
+            )
+            db.add(new_log)
             db.commit()
+            
+            # 通过回调函数发送日志，支持WebSocket等方式
+            if log_callback:
+                try:
+                    await log_callback(log_entry)
+                except Exception as e:
+                    logger.error(f"Error in log callback: {e}")
         
-        log_and_save(f"Starting experiment {experiment_id}: {experiment.name}")
+        await log_and_save(f"Starting experiment {experiment_id}: {experiment.name}")
         
         # 更新实验状态为运行中
         experiment.status = "running"
         experiment.start_time = datetime.now()
         experiment.progress = 0.0
-        experiment.logs = ''.join(log_entries)
         db.commit()
-        log_and_save(f"Experiment {experiment_id} status updated to 'running'")
+        await log_and_save(f"Experiment {experiment_id} status updated to 'running'")
         
         # 使用实验配置，如果没有传入配置
         if not config:
             config = experiment.config
-            log_and_save("Using experiment's own configuration")
+            await log_and_save("Using experiment's own configuration")
         
         # 更新进度
         experiment.progress = 10.0
-        experiment.logs = ''.join(log_entries)
         db.commit()
-        log_and_save("Progress updated to 10%")
+        await log_and_save("Progress updated to 10%")
         
         # 检查QLib是否可用
         qlib_available = qlib_service.is_available()
-        log_and_save(f"QLib availability: {qlib_available}")
+        await log_and_save(f"QLib availability: {qlib_available}")
         
         if qlib_available:
-            log_and_save("Initializing QLib training environment...")
+            await log_and_save("Initializing QLib training environment...")
             try:
                 # 尝试使用QLib进行训练
                 await train_with_qlib(experiment, config, log_and_save, db)
                 return
             except Exception as e:
-                log_and_save(f"QLib training failed: {e}")
-                log_and_save("Falling back to simulated training...")
+                await log_and_save(f"QLib training failed: {e}")
+                await log_and_save("Falling back to simulated training...")
         else:
-            log_and_save("QLib not available, using simulated training...")
+            await log_and_save("QLib not available, using simulated training...")
         
         # 如果QLib不可用或训练失败，使用模拟训练
         await train_with_simulation(experiment, config, log_and_save, db)
@@ -78,38 +100,42 @@ async def train_model_task(experiment_id: int, config: dict, db):
     except Exception as e:
         # 更新实验状态为失败
         error_msg = f"Experiment failed: {str(e)}"
-        log_entries.append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {error_msg}\n")
         experiment.status = "failed"
         experiment.end_time = datetime.now()
         experiment.progress = 0.0
         experiment.error = str(e)
-        experiment.logs = ''.join(log_entries)
         db.commit()
         logger.error(error_msg)
+        # 使用simple_log记录错误，直接等待协程
+        await simple_log(error_msg, level="error")
 
 async def train_with_qlib(experiment, config, log_and_save, db):
     """使用QLib进行训练"""
     max_retries = 3
     retry_delay = 5  # seconds
     
+    await log_and_save(f"Starting QLib training with config: {json.dumps(config, indent=2)[:500]}...")
+    await log_and_save(f"Experiment ID: {experiment.id}, Experiment Name: {experiment.name}")
+    
     for retry in range(max_retries):
+        await log_and_save(f"QLib training attempt {retry + 1}/{max_retries}")
         try:
             # 初始化QLib - 带重试机制
             initialized = False
             init_retry = 0
             while not initialized and init_retry < 3:
                 if not qlib_service.is_initialized():
-                    log_and_save(f"Attempting to initialize QLib (try {init_retry + 1}/3)...")
+                    await log_and_save(f"Attempting to initialize QLib (try {init_retry + 1}/3)...")
                     if qlib_service.init_qlib():
-                        log_and_save("QLib initialized successfully")
+                        await log_and_save("QLib initialized successfully")
                         initialized = True
                     else:
                         init_retry += 1
                         if init_retry < 3:
-                            log_and_save(f"QLib initialization failed, retrying in {retry_delay} seconds...")
+                            await log_and_save(f"QLib initialization failed, retrying in {retry_delay} seconds...")
                             await asyncio.sleep(retry_delay)
                 else:
-                    log_and_save("QLib already initialized")
+                    await log_and_save("QLib already initialized")
                     initialized = True
             
             if not initialized:
@@ -117,12 +143,11 @@ async def train_with_qlib(experiment, config, log_and_save, db):
         
             # 更新进度
             experiment.progress = 20.0
-            experiment.logs = ''.join(log_entries)
             db.commit()
-            log_and_save("Progress updated to 20%")
+            await log_and_save("Progress updated to 20%")
             
             # 初始化模型和数据集 - 带超时机制
-            log_and_save("Initializing model and dataset...")
+            await log_and_save("Initializing model and dataset...")
             
             async def init_model_dataset():
                 from qlib.utils import init_instance_by_config
@@ -132,185 +157,176 @@ async def train_with_qlib(experiment, config, log_and_save, db):
             
             try:
                 model, dataset = await asyncio.wait_for(init_model_dataset(), timeout=300)  # 5分钟超时
-                log_and_save("Model and dataset initialized successfully")
+                await log_and_save("Model and dataset initialized successfully")
             except asyncio.TimeoutError:
+                await log_and_save("Model and dataset initialization timed out after 5 minutes")
                 raise Exception("Model and dataset initialization timed out after 5 minutes")
             
             # 更新进度
             experiment.progress = 30.0
-            experiment.logs = ''.join(log_entries)
             db.commit()
-            log_and_save("Progress updated to 30%")
+            await log_and_save("Progress updated to 30%")
             
             # 准备数据 - 带超时机制
-            log_and_save("Preparing training data...")
+            await log_and_save("Preparing training data...")
             
             async def prepare_data():
                 return dataset.prepare(["train", "test"])
             
             try:
                 train_data, test_data = await asyncio.wait_for(prepare_data(), timeout=600)  # 10分钟超时
-                log_and_save(f"Training data prepared: train shape={train_data.shape}, test shape={test_data.shape}")
+                await log_and_save(f"Training data prepared: train shape={train_data.shape}, test shape={test_data.shape}")
             except asyncio.TimeoutError:
+                await log_and_save("Data preparation timed out after 10 minutes")
                 raise Exception("Data preparation timed out after 10 minutes")
             
             # 更新进度
             experiment.progress = 50.0
-            experiment.logs = ''.join(log_entries)
             db.commit()
-            log_and_save("Progress updated to 50%")
+            await log_and_save("Progress updated to 50%")
             
             # 执行训练 - 带超时机制
-            log_and_save("Starting model training...")
+            await log_and_save("Starting model training...")
             
             # 模拟训练进度更新
             for i in range(10):
                 await asyncio.sleep(1)  # 模拟训练延迟
                 progress = 50.0 + (i + 1) * 3.0  # 50% to 80%
                 experiment.progress = progress
-                experiment.logs = ''.join(log_entries)
                 db.commit()
-                log_and_save(f"Training in progress... {int(progress)}%")
+                await log_and_save(f"Training in progress... {int(progress)}%")
             
             async def fit_model():
                 return model.fit(dataset)
             
             try:
                 await asyncio.wait_for(fit_model(), timeout=1800)  # 30分钟超时
-                log_and_save("Model training completed successfully")
+                await log_and_save("Model training completed successfully")
             except asyncio.TimeoutError:
+                await log_and_save("Model training timed out after 30 minutes")
                 raise Exception("Model training timed out after 30 minutes")
             
             # 更新进度
             experiment.progress = 80.0
-            experiment.logs = ''.join(log_entries)
             db.commit()
-            log_and_save("Progress updated to 80%")
+            await log_and_save("Progress updated to 80%")
             
             # 执行预测 - 带超时机制
-            log_and_save("Executing model prediction...")
+            await log_and_save("Executing model prediction...")
             
             async def predict_model():
                 return model.predict(dataset)
             
             try:
                 predictions = await asyncio.wait_for(predict_model(), timeout=600)  # 10分钟超时
-                log_and_save(f"Model prediction completed: shape={predictions.shape}")
+                await log_and_save(f"Model prediction completed: shape={predictions.shape}")
             except asyncio.TimeoutError:
+                await log_and_save("Model prediction timed out after 10 minutes")
                 raise Exception("Model prediction timed out after 10 minutes")
             
             # 更新进度
             experiment.progress = 90.0
-            experiment.logs = ''.join(log_entries)
             db.commit()
-            log_and_save("Progress updated to 90%")
+            await log_and_save("Progress updated to 90%")
             
             # 生成性能指标
             performance = generate_performance_metrics()
-            log_and_save(f"Performance metrics generated: {performance}")
+            await log_and_save(f"Performance metrics generated: {performance}")
             
             # 更新实验性能指标
             experiment.performance = performance
-            log_and_save("Experiment performance updated")
+            await log_and_save("Experiment performance updated")
             
             # 更新实验状态为完成
             experiment.progress = 100.0
             experiment.status = "completed"
             experiment.end_time = datetime.now()
-            experiment.logs = ''.join(log_entries)
             db.commit()
-            log_and_save(f"Experiment {experiment.id} completed successfully using QLib")
+            await log_and_save(f"Experiment {experiment.id} completed successfully using QLib")
             
             return  # 训练成功，退出函数
             
         except Exception as e:
             import traceback
             error_msg = f"Error during QLib training (try {retry + 1}/{max_retries}): {e}"
-            log_and_save(error_msg)
-            log_and_save(f"Traceback: {traceback.format_exc()}")
+            await log_and_save(error_msg)
+            await log_and_save(f"Traceback: {traceback.format_exc()}")
             
             if retry < max_retries - 1:
                 # 不是最后一次重试，等待后继续
-                log_and_save(f"Retrying QLib training in {retry_delay} seconds...")
+                await log_and_save(f"Retrying QLib training in {retry_delay} seconds...")
                 experiment.progress = max(0, experiment.progress - 10)  # 回退进度
-                experiment.logs = ''.join(log_entries)
                 db.commit()
                 await asyncio.sleep(retry_delay)
             else:
                 # 最后一次重试失败，抛出异常
-                log_and_save(f"QLib training failed after {max_retries} attempts")
+                await log_and_save(f"QLib training failed after {max_retries} attempts")
                 raise
 
 async def train_with_simulation(experiment, config, log_and_save, db):
     """使用模拟训练"""
     # 模拟初始化过程
-    log_and_save("Initializing training environment...")
+    await log_and_save("Initializing training environment...")
     await asyncio.sleep(2)  # 模拟初始化延迟
-    log_and_save("Training environment initialized successfully")
+    await log_and_save("Training environment initialized successfully")
     
     # 更新进度
     experiment.progress = 20.0
-    experiment.logs = ''.join(log_entries)
     db.commit()
-    log_and_save("Progress updated to 20%")
+    await log_and_save("Progress updated to 20%")
     
     # 模拟数据准备过程
-    log_and_save("Preparing training data...")
+    await log_and_save("Preparing training data...")
     await asyncio.sleep(3)  # 模拟数据准备延迟
-    log_and_save("Training data prepared successfully")
+    await log_and_save("Training data prepared successfully")
     
     # 更新进度
     experiment.progress = 50.0
-    experiment.logs = ''.join(log_entries)
     db.commit()
-    log_and_save("Progress updated to 50%")
+    await log_and_save("Progress updated to 50%")
     
     # 模拟模型训练过程
-    log_and_save("Starting model training...")
+    await log_and_save("Starting model training...")
     
     # 模拟训练进度更新
     for i in range(10):
         await asyncio.sleep(1)  # 模拟训练延迟
         progress = 50.0 + (i + 1) * 3.0  # 50% to 80%
         experiment.progress = progress
-        experiment.logs = ''.join(log_entries)
         db.commit()
-        log_and_save(f"Training in progress... {int(progress)}%")
+        await log_and_save(f"Training in progress... {int(progress)}%")
     
-    log_and_save("Model training completed successfully")
+    await log_and_save("Model training completed successfully")
     
     # 更新进度
     experiment.progress = 80.0
-    experiment.logs = ''.join(log_entries)
     db.commit()
-    log_and_save("Progress updated to 80%")
+    await log_and_save("Progress updated to 80%")
     
     # 模拟模型评估过程
-    log_and_save("Evaluating model performance...")
+    await log_and_save("Evaluating model performance...")
     await asyncio.sleep(2)  # 模拟评估延迟
-    log_and_save("Model evaluation completed successfully")
+    await log_and_save("Model evaluation completed successfully")
     
     # 更新进度
     experiment.progress = 90.0
-    experiment.logs = ''.join(log_entries)
     db.commit()
-    log_and_save("Progress updated to 90%")
+    await log_and_save("Progress updated to 90%")
     
     # 生成性能指标
     performance = generate_performance_metrics()
-    log_and_save(f"Performance metrics generated: {performance}")
+    await log_and_save(f"Performance metrics generated: {performance}")
     
     # 更新实验性能指标
     experiment.performance = performance
-    log_and_save("Experiment performance updated")
+    await log_and_save("Experiment performance updated")
     
     # 更新实验状态为完成
     experiment.progress = 100.0
     experiment.status = "completed"
     experiment.end_time = datetime.now()
-    experiment.logs = ''.join(log_entries)
     db.commit()
-    log_and_save(f"Experiment {experiment.id} completed successfully using simulated training")
+    await log_and_save(f"Experiment {experiment.id} completed successfully using simulated training")
 
 def generate_performance_metrics():
     """生成性能指标"""

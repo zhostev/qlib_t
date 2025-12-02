@@ -91,58 +91,63 @@ const Experiments: React.FC = () => {
     console.log('Can Create Experiments:', canCreateExperiments)
   }, [userInfo, canCreateExperiments])
 
+  // Fetch experiments data with optimization to avoid unnecessary re-renders
+  const fetchData = async () => {
+    try {
+      const experimentsData = await getExperiments()
+      // Ensure experimentsData is an array and sort by created_at in descending order
+      const sortedExperiments = Array.isArray(experimentsData) 
+          ? experimentsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          : []
+      
+      // Only update state if data has changed to avoid unnecessary re-renders
+      if (JSON.stringify(sortedExperiments) !== JSON.stringify(experiments)) {
+        setExperiments(sortedExperiments)
+      }
+    } catch (err) {
+      console.error('Failed to fetch experiments:', err)
+    }
+  }
+
   // Fetch data initially and then every 5 seconds for real-time updates
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const experimentsData = await getExperiments()
-                // Ensure experimentsData is an array and sort by created_at in descending order
-                const sortedExperiments = Array.isArray(experimentsData) 
-                    ? experimentsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                    : []
-                setExperiments(sortedExperiments)
-            } catch (err) {
-                console.error('Failed to fetch experiments:', err)
-            }
-        }
+  useEffect(() => {
+      // Fetch configs only once initially
+      const fetchConfigs = async () => {
+          try {
+              const configsData = await getConfigs()
+              // Ensure configsData is an array
+              setConfigs(Array.isArray(configsData) ? configsData : [])
+          } catch (err) {
+              console.error('Failed to fetch configs:', err)
+              // Set empty array on error
+              setConfigs([])
+          }
+      }
 
-        // Fetch configs only once initially
-        const fetchConfigs = async () => {
-            try {
-                const configsData = await getConfigs()
-                // Ensure configsData is an array
-                setConfigs(Array.isArray(configsData) ? configsData : [])
-            } catch (err) {
-                console.error('Failed to fetch configs:', err)
-                // Set empty array on error
-                setConfigs([])
-            }
-        }
+      // Fetch benchmarks only once initially
+      const fetchBenchmarks = async () => {
+          try {
+              const benchmarksData = await getBenchmarks()
+              setBenchmarks(benchmarksData)
+          } catch (err) {
+              console.error('Failed to fetch benchmarks:', err)
+              // Set empty array on error
+              setBenchmarks([])
+          } finally {
+              setLoading(false)
+          }
+      }
 
-        // Fetch benchmarks only once initially
-        const fetchBenchmarks = async () => {
-            try {
-                const benchmarksData = await getBenchmarks()
-                setBenchmarks(benchmarksData)
-            } catch (err) {
-                console.error('Failed to fetch benchmarks:', err)
-                // Set empty array on error
-                setBenchmarks([])
-            } finally {
-                setLoading(false)
-            }
-        }
+      fetchData()
+      fetchConfigs()
+      fetchBenchmarks()
 
-        fetchData()
-        fetchConfigs()
-        fetchBenchmarks()
+      // Set up interval to refresh experiments every 5 seconds
+      const interval = setInterval(fetchData, 5000)
 
-        // Set up interval to refresh experiments every 5 seconds
-        const interval = setInterval(fetchData, 5000)
-
-        // Clean up interval on component unmount
-        return () => clearInterval(interval)
-    }, [])
+      // Clean up interval on component unmount
+      return () => clearInterval(interval)
+  }, [fetchData])
 
   // Fetch logs for expanded experiments every 1 second for better real-time updates
   useEffect(() => {
@@ -164,23 +169,25 @@ const Experiments: React.FC = () => {
       }
     }
 
-    // Fetch logs immediately and then every 1 second for better real-time updates
+    // Fetch logs immediately and then every 3 seconds to reduce server load
     fetchLogs()
-    const logsInterval = setInterval(fetchLogs, 1000)
+    const logsInterval = setInterval(fetchLogs, 3000)
 
     return () => clearInterval(logsInterval)
   }, [showLogs])
 
   // Auto-expand logs when experiment status changes to running
   useEffect(() => {
+    // Only auto-expand logs if user hasn't manually selected any logs
+    if (showLogs !== null) return
+    
     if (experiments.length > 0) {
       const runningExperiments = experiments.filter(exp => exp.status === 'running' || exp.status === 'pending')
-      runningExperiments.forEach(exp => {
-        // Auto-expand logs for running experiments
-        if (showLogs !== exp.id) {
-          setShowLogs(exp.id)
-        }
-      })
+      if (runningExperiments.length > 0) {
+        // Only auto-expand logs for the first running experiment
+        const firstRunningExp = runningExperiments[0]
+        setShowLogs(firstRunningExp.id)
+      }
     }
   }, [experiments, showLogs])
 
@@ -275,7 +282,8 @@ const Experiments: React.FC = () => {
     if (window.confirm('确定要删除这个实验吗？')) {
       try {
         await deleteExperiment(id)
-        setExperiments(experiments.filter(exp => exp.id !== id))
+        // Refresh experiments list immediately after deletion
+        await fetchData()
       } catch (err: any) {
         console.error('Failed to delete experiment:', err)
         if (err.response?.status === 403) {

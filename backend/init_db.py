@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.db.database import engine, Base
+from app.db.database import engine, Base, SessionLocal
 from app.models.user import User
 from app.models.config import Config
 from app.models.experiment import Experiment
@@ -12,16 +12,7 @@ from datetime import datetime, timedelta
 # Create all tables
 Base.metadata.create_all(bind=engine)
 
-# Create a session
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-# Get database URL from settings or use default
-DATABASE_URL = "sqlite:///./test.db"
-
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
+# Create a session using the configured engine from database.py
 db = SessionLocal()
 
 # Check if admin user already exists

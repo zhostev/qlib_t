@@ -10,6 +10,9 @@ class Task(Base):
     status = Column(String(20), default="pending", nullable=False)  # pending, running, completed, failed
     task_type = Column(String(20), default="train", nullable=False)  # train, predict, etc.
     priority = Column(Integer, default=0, nullable=False)
+    retries = Column(Integer, default=0, nullable=False)  # 重试次数
+    max_retries = Column(Integer, default=3, nullable=False)  # 最大重试次数
+    retry_delay = Column(Integer, default=5, nullable=False)  # 重试延迟（秒）
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)

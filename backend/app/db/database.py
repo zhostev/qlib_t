@@ -1,21 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from pydantic_settings import BaseSettings
-import os
-
-class Settings(BaseSettings):
-    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./test.db")
-    secret_key: str = os.getenv("SECRET_KEY", "your-secret-key-here")
-    algorithm: str = os.getenv("ALGORITHM", "HS256")
-    access_token_expire_minutes: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-    training_server_url: str = os.getenv("TRAINING_SERVER_URL", "http://ddns.hoo.ink:8000")
-    training_server_timeout: int = int(os.getenv("TRAINING_SERVER_TIMEOUT", "3600"))
-
-    class Config:
-        env_file = ".env"
-
-settings = Settings()
+from app.config import settings
 
 # Create SQLAlchemy engine with optimized connection pool settings
 if settings.database_url.startswith("sqlite"):

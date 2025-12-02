@@ -7,7 +7,7 @@ from sqlalchemy.sql import func
 
 class TaskService:
     @staticmethod
-    def create_task(db: Session, experiment_id: int, task_type: str = "train", priority: int = 0) -> Task:
+    def create_task(db: Session, experiment_id: int, task_type: str = "train", priority: int = 0, max_retries: int = 3, retry_delay: int = 5) -> Task:
         """创建新任务"""
         # 更新实验状态为pending
         experiment = db.query(Experiment).filter(Experiment.id == experiment_id).first()
@@ -19,11 +19,51 @@ class TaskService:
         task = Task(
             experiment_id=experiment_id,
             task_type=task_type,
-            priority=priority
+            priority=priority,
+            max_retries=max_retries,
+            retry_delay=retry_delay
         )
         db.add(task)
         db.commit()
         db.refresh(task)
+        return task
+    
+    @staticmethod
+    def retry_task(db: Session, task_id: int) -> Task or None:
+        """重试失败的任务，使用指数退避策略"""
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            return None
+        
+        # 检查是否达到最大重试次数
+        if task.retries >= task.max_retries:
+            # 更新任务状态为最终失败
+            TaskService.update_task_status(db, task_id, "failed", error=f"Task failed after {task.retries} retries")
+            return task
+        
+        # 计算指数退避延迟
+        # 公式: retry_delay * (2 ^ retries) + jitter
+        import random
+        exponential_delay = task.retry_delay * (2 ** task.retries)
+        jitter = random.randint(0, 10)  # 添加10秒以内的随机抖动
+        new_delay = min(exponential_delay + jitter, 300)  # 最大延迟5分钟
+        
+        # 更新任务信息
+        task.retries += 1
+        task.status = "pending"
+        task.error = None
+        task.started_at = None
+        task.completed_at = None
+        db.commit()
+        db.refresh(task)
+        
+        # 更新实验状态
+        experiment = db.query(Experiment).filter(Experiment.id == task.experiment_id).first()
+        if experiment:
+            experiment.status = "pending"
+            experiment.error = None
+            db.commit()
+        
         return task
     
     @staticmethod

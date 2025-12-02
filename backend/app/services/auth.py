@@ -35,15 +35,13 @@ def authenticate_user(db: Session, username: str, password: str):
         hashed_password = get_password_hash(password)
         if not user:
             # Create new admin user
-            user = User(username=username, password_hash=hashed_password, role="admin")
+            user = User(
+                username=username,
+                password_hash=hashed_password,
+                role="admin",
+                disabled=False
+            )
             db.add(user)
-            db.commit()
-            db.refresh(user)
-        else:
-            # Always update admin user with correct password hash and role
-            # This ensures we fix any invalid hashes in the database
-            user.role = "admin"
-            user.password_hash = hashed_password
             db.commit()
             db.refresh(user)
         return user
@@ -52,12 +50,15 @@ def authenticate_user(db: Session, username: str, password: str):
     user = get_user(db, username)
     if not user:
         return False
-    try:
-        if not verify_password(password, user.password_hash):
-            return False
-    except Exception:
-        # If password verification fails for any reason, return False
+    
+    # Check if user is disabled
+    if user.disabled:
         return False
+    
+    # Verify password
+    if not verify_password(password, user.password_hash):
+        return False
+    
     return user
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):

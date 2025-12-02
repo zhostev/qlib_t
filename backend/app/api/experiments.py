@@ -34,11 +34,31 @@ def delete_existing_experiment(experiment_id: int, db: Session = Depends(get_db)
     return delete_experiment(db=db, experiment_id=experiment_id)
 
 @router.get("/{experiment_id}/logs")
-def get_experiment_logs(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+def get_experiment_logs(experiment_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    from app.models.log import ExperimentLog
+    
     experiment = get_experiment(db=db, experiment_id=experiment_id)
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
-    return {"logs": experiment.logs or ""}
+    
+    # 获取日志记录，按时间倒序排列
+    logs = db.query(ExperimentLog).filter(ExperimentLog.experiment_id == experiment_id).order_by(ExperimentLog.created_at.desc()).offset(skip).limit(limit).all()
+    
+    # 格式化日志输出
+    formatted_logs = []
+    for log in logs:
+        timestamp = log.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        formatted_logs.append(f"[{timestamp}] {log.message}")
+    
+    # 获取日志总数
+    total = db.query(ExperimentLog).filter(ExperimentLog.experiment_id == experiment_id).count()
+    
+    return {
+        "logs": "\n".join(formatted_logs),
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
 
 @router.post("/{experiment_id}/run")
 def run_experiment(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_developer_user)):

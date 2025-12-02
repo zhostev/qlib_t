@@ -34,7 +34,7 @@ class QLibService:
             return False
     
     @classmethod
-    def init_qlib(cls, provider_uri: str = "/home/idea/code/qlib_t/data/cn_data", force: bool = False) -> bool:
+    def init_qlib(cls, provider_uri: str = "~/.qlib/qlib_data/cn_data", force: bool = False) -> bool:
         """
         Initialize QLib
         
