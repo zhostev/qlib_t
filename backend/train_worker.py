@@ -7,22 +7,56 @@
 import asyncio
 import logging
 import os
+import sys
 from sqlalchemy.orm import Session
 from app.db.database import engine, SessionLocal, Base
 from app.services.task import TaskService
 from app.utils.remote_client import RemoteClient
 from app.models.experiment import Experiment
 
-# 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# 配置详细日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('/home/qlib_t/backend/logs/train_worker_init.log', mode='a')
+    ]
+)
 logger = logging.getLogger(__name__)
+
+# 启动时的环境检查
+logger.info(f"Starting train_worker.py with Python {sys.version}")
+logger.info(f"Current working directory: {os.getcwd()}")
+logger.info(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'Not set')}")
+
+# 验证必要的模块是否可用
+try:
+    import sqlalchemy
+    logger.info(f"SQLAlchemy version: {sqlalchemy.__version__}")
+except ImportError as e:
+    logger.error(f"Failed to import SQLAlchemy: {e}")
+    sys.exit(1)
+
+try:
+    import aiohttp
+    logger.info(f"aiohttp version: {aiohttp.__version__}")
+except ImportError as e:
+    logger.error(f"Failed to import aiohttp: {e}")
+    sys.exit(1)
 
 class TrainWorker:
     def __init__(self, worker_id: str, max_workers: int = 2):
         self.worker_id = worker_id
         self.max_workers = max_workers
         self.running = False
-        self.remote_client = RemoteClient()
+        try:
+            logger.info("Initializing RemoteClient...")
+            self.remote_client = RemoteClient()
+            logger.info("RemoteClient initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize RemoteClient: {e}")
+            self.remote_client = None
     
     def get_db(self):
         """获取数据库会话"""
@@ -34,8 +68,11 @@ class TrainWorker:
         logger.info(f"Train worker {self.worker_id} started")
         
         # 验证与远程服务器的连接
-        if not await self.remote_client.health_check():
-            logger.error("Failed to connect to remote training server. Worker will continue but tasks may fail.")
+        if self.remote_client:
+            if not await self.remote_client.health_check():
+                logger.error("Failed to connect to remote training server. Worker will continue but tasks may fail.")
+        else:
+            logger.error("RemoteClient not initialized. Worker will continue but tasks may fail.")
         
         while self.running:
             try:
@@ -70,6 +107,12 @@ class TrainWorker:
             
             # 更新任务状态为运行中
             TaskService.update_task_status(db, task.id, "running", progress=0)
+            
+            # 检查remote_client是否可用
+            if not self.remote_client:
+                logger.error(f"Cannot process task {task.id}: RemoteClient not initialized")
+                TaskService.update_task_status(db, task.id, "failed", error="RemoteClient not initialized")
+                return
             
             # 执行任务
             if task.task_type == "train":

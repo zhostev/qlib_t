@@ -489,3 +489,43 @@ Traceback (most recent call last):
   File "/usr/local/lib/python3.12/site-packages/sqlalchemy/orm/clsregistry.py", line 501, in _raise_for_name
     raise exc.InvalidRequestError(
 sqlalchemy.exc.InvalidRequestError: When initializing mapper Mapper[Experiment(experiments)], expression 'ExperimentLog' failed to locate a name ('ExperimentLog'). If this is a class name, consider adding this relationship() to the <class 'app.models.experiment.Experiment'> class after both dependent classes have been defined.
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 8, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 8, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 8, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 8, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
+Traceback (most recent call last):
+  File "/home/qlib_t/backend/run_monitoring.py", line 9, in <module>
+    from app.services.monitoring import MonitoringService
+ImportError: cannot import name 'MonitoringService' from 'app.services.monitoring' (/home/qlib_t/backend/app/services/monitoring.py)
