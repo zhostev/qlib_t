@@ -50,6 +50,7 @@ tags
 ./pretrain
 .idea/
 .aider*
+.trae/
 backend/test.db
 frontend/node_modules/
 qlib/_version.py
