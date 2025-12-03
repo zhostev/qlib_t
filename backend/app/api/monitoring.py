@@ -39,3 +39,13 @@ def health_check():
         },
         "timestamp": monitor.get_current_metrics()["timestamp"]
     }
+
+@router.get("/service-status")
+def get_service_status(current_user: User = Depends(get_current_developer_user)):
+    """获取服务状态信息，包括DDNS模型训练服务"""
+    return monitor.get_service_status()
+
+@router.get("/service-status/details")
+def get_detailed_service_status(current_user: User = Depends(get_current_developer_user)):
+    """获取详细的服务状态信息，包括DDNS模型训练服务的详细状态"""
+    return monitor.get_service_status()

@@ -18,9 +18,43 @@ interface Model {
   created_at: string
 }
 
+interface PerformanceMetrics {
+  total_return: number
+  annual_return: number
+  sharpe_ratio: number
+  max_drawdown: number
+  win_rate: number
+  total_trades: number
+  avg_profit: number
+  avg_loss: number
+}
+
+interface RiskMetrics {
+  value_at_risk: number
+  beta: number
+  alpha: number
+  volatility: number
+}
+
 const Dashboard: React.FC = () => {
   const [experiments, setExperiments] = useState<Experiment[]>([])
   const [models, setModels] = useState<Model[]>([])
+  const [performanceMetrics, _setPerformanceMetrics] = useState<PerformanceMetrics>({
+    total_return: 0.156,
+    annual_return: 0.089,
+    sharpe_ratio: 1.85,
+    max_drawdown: -0.123,
+    win_rate: 0.62,
+    total_trades: 145,
+    avg_profit: 0.025,
+    avg_loss: -0.018
+  })
+  const [riskMetrics, _setRiskMetrics] = useState<RiskMetrics>({
+    value_at_risk: 4.2,
+    beta: 0.85,
+    alpha: 0.023,
+    volatility: 0.156
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -220,6 +254,128 @@ const Dashboard: React.FC = () => {
           <div className="stat-content">
             <h3 className="stat-title">总模型数</h3>
             <p className="stat-value">{models.length}</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* 绩效指标卡片 */}
+      <div className="dashboard-metrics">
+        <div className="metrics-section">
+          <h2 className="metrics-section-title">核心绩效指标</h2>
+          <div className="metrics-grid">
+            <div className="metric-card">
+              <div className="metric-header">
+                <h3 className="metric-title">总收益</h3>
+                <span className="metric-icon">💰</span>
+              </div>
+              <div className={`metric-value ${performanceMetrics.total_return >= 0 ? 'positive' : 'negative'}`}>
+                {(performanceMetrics.total_return * 100).toFixed(2)}%
+              </div>
+              <div className="metric-description">所有交易的总收益率</div>
+            </div>
+            
+            <div className="metric-card">
+              <div className="metric-header">
+                <h3 className="metric-title">年化收益</h3>
+                <span className="metric-icon">📈</span>
+              </div>
+              <div className={`metric-value ${performanceMetrics.annual_return >= 0 ? 'positive' : 'negative'}`}>
+                {(performanceMetrics.annual_return * 100).toFixed(2)}%
+              </div>
+              <div className="metric-description">年化收益率</div>
+            </div>
+            
+            <div className="metric-card">
+              <div className="metric-header">
+                <h3 className="metric-title">夏普比率</h3>
+                <span className="metric-icon">📊</span>
+              </div>
+              <div className={`metric-value ${performanceMetrics.sharpe_ratio >= 1 ? 'positive' : 'warning'}`}>
+                {performanceMetrics.sharpe_ratio.toFixed(2)}
+              </div>
+              <div className="metric-description">风险调整后收益</div>
+            </div>
+            
+            <div className="metric-card">
+              <div className="metric-header">
+                <h3 className="metric-title">最大回撤</h3>
+                <span className="metric-icon">📉</span>
+              </div>
+              <div className={`metric-value ${performanceMetrics.max_drawdown > -0.2 ? 'positive' : 'negative'}`}>
+                {(performanceMetrics.max_drawdown * 100).toFixed(2)}%
+              </div>
+              <div className="metric-description">最大资金回撤</div>
+            </div>
+            
+            <div className="metric-card">
+              <div className="metric-header">
+                <h3 className="metric-title">胜率</h3>
+                <span className="metric-icon">🎯</span>
+              </div>
+              <div className={`metric-value ${performanceMetrics.win_rate >= 0.5 ? 'positive' : 'negative'}`}>
+                {(performanceMetrics.win_rate * 100).toFixed(2)}%
+              </div>
+              <div className="metric-description">盈利交易占比</div>
+            </div>
+            
+            <div className="metric-card">
+              <div className="metric-header">
+                <h3 className="metric-title">总交易次数</h3>
+                <span className="metric-icon">🔄</span>
+              </div>
+              <div className="metric-value">{performanceMetrics.total_trades}</div>
+              <div className="metric-description">所有交易总次数</div>
+            </div>
+          </div>
+        </div>
+        
+        {/* 风险指标卡片 */}
+        <div className="metrics-section">
+          <h2 className="metrics-section-title">风险指标</h2>
+          <div className="metrics-grid">
+            <div className="metric-card">
+              <div className="metric-header">
+                <h3 className="metric-title">风险价值 (VaR)</h3>
+                <span className="metric-icon">⚠️</span>
+              </div>
+              <div className={`metric-value ${riskMetrics.value_at_risk < 0.05 ? 'positive' : 'warning'}`}>
+                {(riskMetrics.value_at_risk * 100).toFixed(2)}%
+              </div>
+              <div className="metric-description">置信区间内最大可能损失</div>
+            </div>
+            
+            <div className="metric-card">
+              <div className="metric-header">
+                <h3 className="metric-title">贝塔系数</h3>
+                <span className="metric-icon">📊</span>
+              </div>
+              <div className={`metric-value ${Math.abs(riskMetrics.beta - 1) < 0.2 ? 'positive' : 'warning'}`}>
+                {riskMetrics.beta.toFixed(2)}
+              </div>
+              <div className="metric-description">与市场相关性</div>
+            </div>
+            
+            <div className="metric-card">
+              <div className="metric-header">
+                <h3 className="metric-title">阿尔法系数</h3>
+                <span className="metric-icon">🏆</span>
+              </div>
+              <div className={`metric-value ${riskMetrics.alpha >= 0 ? 'positive' : 'negative'}`}>
+                {riskMetrics.alpha.toFixed(3)}
+              </div>
+              <div className="metric-description">超额收益能力</div>
+            </div>
+            
+            <div className="metric-card">
+              <div className="metric-header">
+                <h3 className="metric-title">波动率</h3>
+                <span className="metric-icon">📊</span>
+              </div>
+              <div className={`metric-value ${riskMetrics.volatility < 0.2 ? 'positive' : 'warning'}`}>
+                {(riskMetrics.volatility * 100).toFixed(2)}%
+              </div>
+              <div className="metric-description">收益波动程度</div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { getUserInfo, logout, isAuthenticated, getToken } from '../../services/auth'
+import { getUserInfo, logout, isAuthenticated } from '../../services/auth'
 import type { UserInfo } from '../../services/auth'
 import './Navigation.css'
 
@@ -100,6 +100,16 @@ const Navigation: React.FC = () => {
               </NavLink>
             </li>
             <li className="nav-item">
+              <NavLink to="/backtest" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                回测管理
+              </NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/risk" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                风险控制
+              </NavLink>
+            </li>
+            <li className="nav-item">
               <NavLink to="/models" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 模型管理
               </NavLink>
@@ -107,6 +117,11 @@ const Navigation: React.FC = () => {
             <li className="nav-item">
               <NavLink to="/factors" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 因子管理
+              </NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/factor-analysis" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                因子分析
               </NavLink>
             </li>
             <li className="nav-item">

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api import auth, experiments, models, configs, benchmarks, factors, data, train
+from app.api import auth, experiments, models, configs, benchmarks, factors, data, train, monitoring
 
 # Create main API router
 api_router = APIRouter()
@@ -13,5 +13,6 @@ api_router.include_router(benchmarks.router, prefix="/benchmarks", tags=["benchm
 api_router.include_router(factors.router, prefix="/factors", tags=["factors"])
 api_router.include_router(data.router, prefix="/data", tags=["data"])
 api_router.include_router(train.router, prefix="/train", tags=["train"])  # 添加训练API路由器
+api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])  # 添加监控API路由器
 
 

@@ -10,6 +10,9 @@ import Profile from './pages/Profile'
 import Admin from './pages/Admin'
 import FactorManagement from './pages/FactorManagement'
 import DataManagement from './pages/DataManagement'
+import Backtest from './pages/Backtest'
+import RiskManagement from './pages/RiskManagement'
+import FactorAnalysis from './pages/FactorAnalysis'
 
 import Navigation from './components/Navigation/Navigation'
 import PrivateRoute from './components/PrivateRoute/PrivateRoute'
@@ -40,9 +43,12 @@ function App() {
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/experiments" element={<Experiments />} />
                   <Route path="/experiments/:id" element={<ExperimentDetail />} />
+                  <Route path="/backtest" element={<Backtest />} />
+                  <Route path="/risk" element={<RiskManagement />} />
                   <Route path="/models" element={<Models />} />
                   <Route path="/models/:id" element={<ModelDetail />} />
                   <Route path="/factors" element={<FactorManagement />} />
+                  <Route path="/factor-analysis" element={<FactorAnalysis />} />
                   <Route path="/data" element={<DataManagement />} />
                   <Route path="/profile" element={<Profile />} />
                   

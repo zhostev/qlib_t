@@ -53,6 +53,8 @@ const Experiments: React.FC = () => {
   const [showLogs, setShowLogs] = useState<number | null>(null)
   const [logs, setLogs] = useState<{ [key: number]: string[] }>({})
   const [viewMode, setViewMode] = useState<'card' | 'list'>('list')
+  const [selectedExperiments, setSelectedExperiments] = useState<number[]>([])
+  const [showComparison, setShowComparison] = useState(false)
   const navigate = useNavigate()
 
   // 默认YAML配置示例
@@ -430,6 +432,188 @@ task:
     setSubmitting(false)
   }
 
+  // 处理实验选择
+  const handleExperimentSelect = (id: number) => {
+    setSelectedExperiments(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(expId => expId !== id)
+      } else {
+        // 最多选择5个实验进行对比
+        if (prev.length >= 5) {
+          alert('最多只能选择5个实验进行对比')
+          return prev
+        }
+        return [...prev, id]
+      }
+    })
+  }
+
+  // 清除选择的实验
+  const clearSelectedExperiments = () => {
+    setSelectedExperiments([])
+    setShowComparison(false)
+  }
+
+  // 生成实验对比图表
+  const getComparisonChartOption = () => {
+    const selectedExps = experiments.filter(exp => selectedExperiments.includes(exp.id))
+    
+    if (selectedExps.length < 2) {
+      return {
+        title: {
+          text: '请至少选择2个实验进行对比',
+          left: 'center'
+        }
+      }
+    }
+    
+    // 提取所有实验的累计收益曲线
+    const allDates = new Set<string>()
+    const series = selectedExps.map(exp => {
+      if (exp.performance && exp.performance.cumulative_returns) {
+        const dates = Object.keys(exp.performance.cumulative_returns)
+        dates.forEach(date => allDates.add(date))
+        return {
+          name: exp.name,
+          type: 'line',
+          data: dates.map(date => (exp.performance.cumulative_returns[date] * 100).toFixed(2)),
+          smooth: true,
+          lineStyle: {
+            width: 2
+          },
+          areaStyle: {
+            opacity: 0.1
+          }
+        }
+      }
+      return {
+        name: exp.name,
+        type: 'line',
+        data: [],
+        smooth: true
+      }
+    })
+    
+    const sortedDates = Array.from(allDates).sort()
+    
+    return {
+      title: {
+        text: '实验收益对比',
+        left: 'center',
+        textStyle: {
+          fontSize: 14
+        }
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = `${params[0].axisValue}<br/>`
+          params.forEach((param: any) => {
+            result += `${param.seriesName}: ${param.value}%<br/>`
+          })
+          return result
+        }
+      },
+      legend: {
+        data: selectedExps.map(exp => exp.name),
+        orient: 'horizontal',
+        bottom: 10,
+        textStyle: {
+          fontSize: 12
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '15%',
+        top: '15%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: sortedDates,
+        axisLabel: {
+          rotate: 45,
+          fontSize: 10
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: {
+          formatter: '{value}%',
+          fontSize: 12
+        }
+      },
+      series: series
+    }
+  }
+
+  // 生成实验指标对比表格
+  const renderComparisonTable = () => {
+    const selectedExps = experiments.filter(exp => selectedExperiments.includes(exp.id))
+    
+    if (selectedExps.length < 2) {
+      return <div className="empty-comparison">请至少选择2个实验进行对比</div>
+    }
+    
+    return (
+      <div className="comparison-table-container">
+        <table className="comparison-table">
+          <thead>
+            <tr>
+              <th>指标</th>
+              {selectedExps.map(exp => (
+                <th key={exp.id}>{exp.name}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>总收益</td>
+              {selectedExps.map(exp => (
+                <td key={exp.id} className={exp.performance?.total_return >= 0 ? 'positive' : 'negative'}>
+                  {exp.performance?.total_return !== undefined ? `${(exp.performance.total_return * 100).toFixed(2)}%` : '-'}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>年化收益</td>
+              {selectedExps.map(exp => (
+                <td key={exp.id} className={exp.performance?.annual_return >= 0 ? 'positive' : 'negative'}>
+                  {exp.performance?.annual_return !== undefined ? `${(exp.performance.annual_return * 100).toFixed(2)}%` : '-'}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>夏普比率</td>
+              {selectedExps.map(exp => (
+                <td key={exp.id} className={exp.performance?.sharpe_ratio >= 1 ? 'positive' : exp.performance?.sharpe_ratio > 0 ? 'warning' : 'negative'}>
+                  {exp.performance?.sharpe_ratio !== undefined ? exp.performance.sharpe_ratio.toFixed(2) : '-'}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>最大回撤</td>
+              {selectedExps.map(exp => (
+                <td key={exp.id}>
+                  {exp.performance?.max_drawdown !== undefined ? `${(exp.performance.max_drawdown * 100).toFixed(2)}%` : '-'}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>胜率</td>
+              {selectedExps.map(exp => (
+                <td key={exp.id} className={exp.performance?.win_rate >= 0.5 ? 'positive' : 'negative'}>
+                  {exp.performance?.win_rate !== undefined ? `${(exp.performance.win_rate * 100).toFixed(2)}%` : '-'}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
   // Prepare chart data if performance is available
   const getChartOption = (performance: any, chartType: 'cumulative' | 'drawdown' | 'monthly' = 'cumulative') => {
     if (!performance) {
@@ -568,18 +752,6 @@ task:
   }
 
   return (
-<<<<<<< HEAD
-    <div className="container page-transition">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>Experiments</h1>
-          <button className="btn" onClick={() => {
-            setShowForm(true)
-            setYamlContent(defaultYamlExample)
-          }}>
-            Create Experiment
-          </button>
-        </div>
-
     <div className="container page-transition">
       <div className="page-header">
         <h1>实验管理</h1>
@@ -752,6 +924,7 @@ task:
                   ⚠️ {yamlError}
                 </small>
               )}
+            </div>
             {error && (
               <div style={{ marginBottom: '15px', padding: '10px 12px', backgroundColor: '#fff1f0', color: '#ff4d4f', borderRadius: '6px', border: '1px solid #ffccc7', fontSize: '13px' }}>
                 ⚠️ {error}
@@ -787,25 +960,64 @@ task:
 
       <div className="experiments-list-header">
         <h2>实验列表</h2>
-        <div className="view-mode-switcher">
-          <button 
-            className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
-            onClick={() => setViewMode('card')}
-          >
-            卡片视图
-          </button>
-          <button 
-            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={() => setViewMode('list')}
-          >
-            列表视图
-          </button>
+        <div className="header-controls">
+          <div className="view-mode-switcher">
+            <button 
+              className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
+              onClick={() => setViewMode('card')}
+            >
+              卡片视图
+            </button>
+            <button 
+              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+            >
+              列表视图
+            </button>
+          </div>
+          {selectedExperiments.length > 0 && (
+            <div className="comparison-controls">
+              <span className="selected-count">已选择 {selectedExperiments.length} 个实验</span>
+              <button 
+                className="btn btn-secondary" 
+                onClick={clearSelectedExperiments}
+              >
+                清除选择
+              </button>
+              {selectedExperiments.length >= 2 && (
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => setShowComparison(!showComparison)}
+                >
+                  {showComparison ? '隐藏对比' : '开始对比'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
+      {showComparison && (
+        <div className="experiment-comparison-section">
+          <h2>实验对比</h2>
+          <div className="comparison-chart">
+            <ReactECharts option={getComparisonChartOption()} style={{ height: '400px' }} />
+          </div>
+          {renderComparisonTable()}
+        </div>
+      )}
+      
       <div className={`experiments-list view-${viewMode}`}>
         {experiments.map(experiment => (
           <div key={experiment.id} className={viewMode === 'card' ? 'experiment-card' : 'experiment-list-item'}>
+            <div className="experiment-selector">
+              <input
+                type="checkbox"
+                checked={selectedExperiments.includes(experiment.id)}
+                onChange={() => handleExperimentSelect(experiment.id)}
+                className="experiment-checkbox"
+              />
+            </div>
             {viewMode === 'card' ? (
               <>
                 <div className="experiment-header">

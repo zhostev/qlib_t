@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { getUsers, createUser, updateUser, deleteUser } from '../services/auth'
+import { getServiceStatus } from '../services/monitoring'
 import type { UserInfo } from '../services/auth'
+import type { ServiceStatusResponse } from '../services/monitoring'
 
 interface UserFormData {
   username: string
@@ -24,6 +26,10 @@ const Admin: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [usersPerPage] = useState(10)
   const [activeTab, setActiveTab] = useState<'users' | 'configs' | 'logs' | 'monitoring'>('users')
+  const [monitoringSubTab, setMonitoringSubTab] = useState<'overview' | 'service-status'>('overview')
+  const [serviceStatus, setServiceStatus] = useState<ServiceStatusResponse | null>(null)
+  const [serviceStatusLoading, setServiceStatusLoading] = useState(false)
+  const [serviceStatusError, setServiceStatusError] = useState<string | null>(null)
   const [formData, setFormData] = useState<UserFormData>({
     username: '',
     email: '',
@@ -36,6 +42,33 @@ const Admin: React.FC = () => {
   useEffect(() => {
     fetchUsers()
   }, [])
+
+  // 当监控标签页激活或子标签页切换到服务状态时，获取服务状态
+  useEffect(() => {
+    if (activeTab === 'monitoring' && monitoringSubTab === 'service-status') {
+      fetchServiceStatus()
+    }
+  }, [activeTab, monitoringSubTab])
+
+  // 获取服务状态
+  const fetchServiceStatus = async () => {
+    setServiceStatusLoading(true)
+    setServiceStatusError(null)
+    try {
+      const status = await getServiceStatus()
+      setServiceStatus(status)
+    } catch (err) {
+      setServiceStatusError('获取服务状态失败')
+      console.error('Failed to fetch service status:', err)
+    } finally {
+      setServiceStatusLoading(false)
+    }
+  }
+
+  // 手动刷新服务状态
+  const handleRefreshServiceStatus = () => {
+    fetchServiceStatus()
+  }
 
   const fetchUsers = async () => {
     try {
@@ -417,45 +450,126 @@ const Admin: React.FC = () => {
       {activeTab === 'monitoring' && (
         <div className="card">
           <h2>系统监控</h2>
-          <div className="monitoring-content">
-            <p>系统监控功能正在开发中...</p>
-            <div className="monitoring-stats">
-              <div className="stat-card">
-                <h3>系统状态</h3>
-                <div className="stat-value status-active">运行中</div>
-              </div>
-              <div className="stat-card">
-                <h3>在线用户</h3>
-                <div className="stat-value">1</div>
-              </div>
-              <div className="stat-card">
-                <h3>CPU使用率</h3>
-                <div className="stat-value">25%</div>
-              </div>
-              <div className="stat-card">
-                <h3>内存使用率</h3>
-                <div className="stat-value">45%</div>
-              </div>
-            </div>
-            <div className="monitoring-placeholder">
-              <div className="monitoring-item">
-                  <h3>系统资源监控</h3>
-                  <p>实时监控CPU、内存、磁盘等系统资源使用情况</p>
-              </div>
-              <div className="monitoring-item">
-                <h3>API性能监控</h3>
-                <p>监控API请求响应时间和成功率</p>
-              </div>
-              <div className="monitoring-item">
-                <h3>数据库监控</h3>
-                <p>监控数据库连接数和查询性能</p>
-              </div>
-              <div className="monitoring-item">
-                <h3>服务状态监控</h3>
-                <p>监控系统各服务的运行状态</p>
-              </div>
-            </div>
+          
+          {/* 监控子标签页导航 */}
+          <div className="admin-tabs">
+            <button 
+              className={`tab-btn ${monitoringSubTab === 'overview' ? 'active' : ''}`}
+              onClick={() => setMonitoringSubTab('overview')}
+            >
+              系统概览
+            </button>
+            <button 
+              className={`tab-btn ${monitoringSubTab === 'service-status' ? 'active' : ''}`}
+              onClick={() => setMonitoringSubTab('service-status')}
+            >
+              服务状态监控
+            </button>
           </div>
+          
+          {/* 系统概览 */}
+          {monitoringSubTab === 'overview' && (
+            <div className="monitoring-content">
+              <p>系统监控功能正在开发中...</p>
+              <div className="monitoring-stats">
+                <div className="stat-card">
+                  <h3>系统状态</h3>
+                  <div className="stat-value status-active">运行中</div>
+                </div>
+                <div className="stat-card">
+                  <h3>在线用户</h3>
+                  <div className="stat-value">1</div>
+                </div>
+                <div className="stat-card">
+                  <h3>CPU使用率</h3>
+                  <div className="stat-value">25%</div>
+                </div>
+                <div className="stat-card">
+                  <h3>内存使用率</h3>
+                  <div className="stat-value">45%</div>
+                </div>
+              </div>
+              <div className="monitoring-placeholder">
+                <div className="monitoring-item">
+                    <h3>系统资源监控</h3>
+                    <p>实时监控CPU、内存、磁盘等系统资源使用情况</p>
+                </div>
+                <div className="monitoring-item">
+                  <h3>API性能监控</h3>
+                  <p>监控API请求响应时间和成功率</p>
+                </div>
+                <div className="monitoring-item">
+                  <h3>数据库监控</h3>
+                  <p>监控数据库连接数和查询性能</p>
+                </div>
+                <div className="monitoring-item">
+                  <h3>服务状态监控</h3>
+                  <p>监控系统各服务的运行状态</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* 服务状态监控 */}
+          {monitoringSubTab === 'service-status' && (
+            <div className="service-status-content">
+              <div className="service-status-header">
+                <h3>服务状态监控</h3>
+                <button 
+                  className="btn btn-sm btn-primary"
+                  onClick={handleRefreshServiceStatus}
+                  disabled={serviceStatusLoading}
+                >
+                  {serviceStatusLoading ? '刷新中...' : '刷新'}
+                </button>
+              </div>
+              
+              {serviceStatusError && (
+                <div className="error-message">
+                  {serviceStatusError}
+                  <button onClick={() => setServiceStatusError(null)}>×</button>
+                </div>
+              )}
+              
+              {serviceStatusLoading ? (
+                <div className="loading">加载中...</div>
+              ) : (
+                <div className="service-status-grid">
+                  {serviceStatus && Object.entries(serviceStatus.services).map(([serviceName, service]) => (
+                    <div className="service-card" key={serviceName}>
+                      <div className="service-header">
+                        <h4>{serviceName === 'local_api' ? '本地API服务' : 'DDNS模型训练服务'}</h4>
+                        <span className={`status-badge status-${service.status}`}>
+                          {service.status === 'healthy' ? '正常' : 
+                           service.status === 'unhealthy' ? '异常' : 
+                           service.status === 'running' ? '运行中' : 
+                           '不可达'}
+                        </span>
+                      </div>
+                      <div className="service-details">
+                        <p>{service.details}</p>
+                        {service.server_url && (
+                          <p className="server-url">服务器地址: {service.server_url}</p>
+                        )}
+                        {service.server_status && (
+                          <div className="server-status-details">
+                            <h5>服务器详细状态:</h5>
+                            <pre>{JSON.stringify(service.server_status, null, 2)}</pre>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {serviceStatus && (
+                <div className="last-updated">
+                  最后更新: {new Date(serviceStatus.timestamp).toLocaleString()}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
