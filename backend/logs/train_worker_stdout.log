@@ -23814,3 +23814,73 @@ WHERE tasks.status = %(status_1)s ORDER BY tasks.priority DESC, tasks.created_at
  LIMIT %(param_1)s]
 [parameters: {'status_1': 'pending', 'param_1': 2}]
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-12-03 16:01:38,003 - __main__ - ERROR - [train_worker.py:92] - Error in train worker: (pymysql.err.OperationalError) (1054, "Unknown column 'tasks.retries' in 'field list'")
+[SQL: SELECT tasks.id AS tasks_id, tasks.experiment_id AS tasks_experiment_id, tasks.status AS tasks_status, tasks.task_type AS tasks_task_type, tasks.priority AS tasks_priority, tasks.retries AS tasks_retries, tasks.max_retries AS tasks_max_retries, tasks.retry_delay AS tasks_retry_delay, tasks.created_at AS tasks_created_at, tasks.started_at AS tasks_started_at, tasks.completed_at AS tasks_completed_at, tasks.result AS tasks_result, tasks.error AS tasks_error, tasks.progress AS tasks_progress 
+FROM tasks 
+WHERE tasks.status = %(status_1)s ORDER BY tasks.priority DESC, tasks.created_at 
+ LIMIT %(param_1)s]
+[parameters: {'status_1': 'pending', 'param_1': 2}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-12-03 16:01:43,023 - __main__ - ERROR - [train_worker.py:92] - Error in train worker: (pymysql.err.OperationalError) (1054, "Unknown column 'tasks.retries' in 'field list'")
+[SQL: SELECT tasks.id AS tasks_id, tasks.experiment_id AS tasks_experiment_id, tasks.status AS tasks_status, tasks.task_type AS tasks_task_type, tasks.priority AS tasks_priority, tasks.retries AS tasks_retries, tasks.max_retries AS tasks_max_retries, tasks.retry_delay AS tasks_retry_delay, tasks.created_at AS tasks_created_at, tasks.started_at AS tasks_started_at, tasks.completed_at AS tasks_completed_at, tasks.result AS tasks_result, tasks.error AS tasks_error, tasks.progress AS tasks_progress 
+FROM tasks 
+WHERE tasks.status = %(status_1)s ORDER BY tasks.priority DESC, tasks.created_at 
+ LIMIT %(param_1)s]
+[parameters: {'status_1': 'pending', 'param_1': 2}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-12-03 16:01:48,042 - __main__ - ERROR - [train_worker.py:92] - Error in train worker: (pymysql.err.OperationalError) (1054, "Unknown column 'tasks.retries' in 'field list'")
+[SQL: SELECT tasks.id AS tasks_id, tasks.experiment_id AS tasks_experiment_id, tasks.status AS tasks_status, tasks.task_type AS tasks_task_type, tasks.priority AS tasks_priority, tasks.retries AS tasks_retries, tasks.max_retries AS tasks_max_retries, tasks.retry_delay AS tasks_retry_delay, tasks.created_at AS tasks_created_at, tasks.started_at AS tasks_started_at, tasks.completed_at AS tasks_completed_at, tasks.result AS tasks_result, tasks.error AS tasks_error, tasks.progress AS tasks_progress 
+FROM tasks 
+WHERE tasks.status = %(status_1)s ORDER BY tasks.priority DESC, tasks.created_at 
+ LIMIT %(param_1)s]
+[parameters: {'status_1': 'pending', 'param_1': 2}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-12-03 16:01:53,115 - __main__ - ERROR - [train_worker.py:92] - Error in train worker: (pymysql.err.OperationalError) (1054, "Unknown column 'tasks.retries' in 'field list'")
+[SQL: SELECT tasks.id AS tasks_id, tasks.experiment_id AS tasks_experiment_id, tasks.status AS tasks_status, tasks.task_type AS tasks_task_type, tasks.priority AS tasks_priority, tasks.retries AS tasks_retries, tasks.max_retries AS tasks_max_retries, tasks.retry_delay AS tasks_retry_delay, tasks.created_at AS tasks_created_at, tasks.started_at AS tasks_started_at, tasks.completed_at AS tasks_completed_at, tasks.result AS tasks_result, tasks.error AS tasks_error, tasks.progress AS tasks_progress 
+FROM tasks 
+WHERE tasks.status = %(status_1)s ORDER BY tasks.priority DESC, tasks.created_at 
+ LIMIT %(param_1)s]
+[parameters: {'status_1': 'pending', 'param_1': 2}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-12-03 16:01:58,135 - __main__ - ERROR - [train_worker.py:92] - Error in train worker: (pymysql.err.OperationalError) (1054, "Unknown column 'tasks.retries' in 'field list'")
+[SQL: SELECT tasks.id AS tasks_id, tasks.experiment_id AS tasks_experiment_id, tasks.status AS tasks_status, tasks.task_type AS tasks_task_type, tasks.priority AS tasks_priority, tasks.retries AS tasks_retries, tasks.max_retries AS tasks_max_retries, tasks.retry_delay AS tasks_retry_delay, tasks.created_at AS tasks_created_at, tasks.started_at AS tasks_started_at, tasks.completed_at AS tasks_completed_at, tasks.result AS tasks_result, tasks.error AS tasks_error, tasks.progress AS tasks_progress 
+FROM tasks 
+WHERE tasks.status = %(status_1)s ORDER BY tasks.priority DESC, tasks.created_at 
+ LIMIT %(param_1)s]
+[parameters: {'status_1': 'pending', 'param_1': 2}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-12-03 16:02:03,153 - __main__ - ERROR - [train_worker.py:92] - Error in train worker: (pymysql.err.OperationalError) (1054, "Unknown column 'tasks.retries' in 'field list'")
+[SQL: SELECT tasks.id AS tasks_id, tasks.experiment_id AS tasks_experiment_id, tasks.status AS tasks_status, tasks.task_type AS tasks_task_type, tasks.priority AS tasks_priority, tasks.retries AS tasks_retries, tasks.max_retries AS tasks_max_retries, tasks.retry_delay AS tasks_retry_delay, tasks.created_at AS tasks_created_at, tasks.started_at AS tasks_started_at, tasks.completed_at AS tasks_completed_at, tasks.result AS tasks_result, tasks.error AS tasks_error, tasks.progress AS tasks_progress 
+FROM tasks 
+WHERE tasks.status = %(status_1)s ORDER BY tasks.priority DESC, tasks.created_at 
+ LIMIT %(param_1)s]
+[parameters: {'status_1': 'pending', 'param_1': 2}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-12-03 16:02:08,172 - __main__ - ERROR - [train_worker.py:92] - Error in train worker: (pymysql.err.OperationalError) (1054, "Unknown column 'tasks.retries' in 'field list'")
+[SQL: SELECT tasks.id AS tasks_id, tasks.experiment_id AS tasks_experiment_id, tasks.status AS tasks_status, tasks.task_type AS tasks_task_type, tasks.priority AS tasks_priority, tasks.retries AS tasks_retries, tasks.max_retries AS tasks_max_retries, tasks.retry_delay AS tasks_retry_delay, tasks.created_at AS tasks_created_at, tasks.started_at AS tasks_started_at, tasks.completed_at AS tasks_completed_at, tasks.result AS tasks_result, tasks.error AS tasks_error, tasks.progress AS tasks_progress 
+FROM tasks 
+WHERE tasks.status = %(status_1)s ORDER BY tasks.priority DESC, tasks.created_at 
+ LIMIT %(param_1)s]
+[parameters: {'status_1': 'pending', 'param_1': 2}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-12-03 16:02:13,191 - __main__ - ERROR - [train_worker.py:92] - Error in train worker: (pymysql.err.OperationalError) (1054, "Unknown column 'tasks.retries' in 'field list'")
+[SQL: SELECT tasks.id AS tasks_id, tasks.experiment_id AS tasks_experiment_id, tasks.status AS tasks_status, tasks.task_type AS tasks_task_type, tasks.priority AS tasks_priority, tasks.retries AS tasks_retries, tasks.max_retries AS tasks_max_retries, tasks.retry_delay AS tasks_retry_delay, tasks.created_at AS tasks_created_at, tasks.started_at AS tasks_started_at, tasks.completed_at AS tasks_completed_at, tasks.result AS tasks_result, tasks.error AS tasks_error, tasks.progress AS tasks_progress 
+FROM tasks 
+WHERE tasks.status = %(status_1)s ORDER BY tasks.priority DESC, tasks.created_at 
+ LIMIT %(param_1)s]
+[parameters: {'status_1': 'pending', 'param_1': 2}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-12-03 16:02:18,211 - __main__ - ERROR - [train_worker.py:92] - Error in train worker: (pymysql.err.OperationalError) (1054, "Unknown column 'tasks.retries' in 'field list'")
+[SQL: SELECT tasks.id AS tasks_id, tasks.experiment_id AS tasks_experiment_id, tasks.status AS tasks_status, tasks.task_type AS tasks_task_type, tasks.priority AS tasks_priority, tasks.retries AS tasks_retries, tasks.max_retries AS tasks_max_retries, tasks.retry_delay AS tasks_retry_delay, tasks.created_at AS tasks_created_at, tasks.started_at AS tasks_started_at, tasks.completed_at AS tasks_completed_at, tasks.result AS tasks_result, tasks.error AS tasks_error, tasks.progress AS tasks_progress 
+FROM tasks 
+WHERE tasks.status = %(status_1)s ORDER BY tasks.priority DESC, tasks.created_at 
+ LIMIT %(param_1)s]
+[parameters: {'status_1': 'pending', 'param_1': 2}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-12-03 16:02:23,280 - __main__ - ERROR - [train_worker.py:92] - Error in train worker: (pymysql.err.OperationalError) (1054, "Unknown column 'tasks.retries' in 'field list'")
+[SQL: SELECT tasks.id AS tasks_id, tasks.experiment_id AS tasks_experiment_id, tasks.status AS tasks_status, tasks.task_type AS tasks_task_type, tasks.priority AS tasks_priority, tasks.retries AS tasks_retries, tasks.max_retries AS tasks_max_retries, tasks.retry_delay AS tasks_retry_delay, tasks.created_at AS tasks_created_at, tasks.started_at AS tasks_started_at, tasks.completed_at AS tasks_completed_at, tasks.result AS tasks_result, tasks.error AS tasks_error, tasks.progress AS tasks_progress 
+FROM tasks 
+WHERE tasks.status = %(status_1)s ORDER BY tasks.priority DESC, tasks.created_at 
+ LIMIT %(param_1)s]
+[parameters: {'status_1': 'pending', 'param_1': 2}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
