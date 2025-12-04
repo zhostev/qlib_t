@@ -70,11 +70,20 @@ def run_experiment(experiment_id: int, db: Session = Depends(get_db), current_us
     experiment.status = "pending"
     experiment.progress = 0.0
     experiment.error = None
-    experiment.logs = None
+    # Don't set experiment.logs to None - it's a relationship, not a column
     db.commit()
     
-    # Directly return success without creating task (temporary fix for missing columns in tasks table)
-    return {"message": "Experiment started successfully (temporary fix)", "experiment_id": experiment_id}
+    try:
+        # Create task to run the experiment
+        task = TaskService.create_task(db=db, experiment_id=experiment_id, task_type="train")
+        
+        return {"message": "Experiment started successfully", "experiment_id": experiment_id, "task_id": task.id}
+    except Exception as e:
+        import traceback
+        traceback_str = traceback.format_exc()
+        print(f"Error in run_experiment: {e}")
+        print(f"Traceback: {traceback_str}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/{experiment_id}/analysis")
 def get_experiment_analysis(experiment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):

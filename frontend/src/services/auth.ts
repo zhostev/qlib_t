@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axiosInstance from './axiosInstance'
 
 const API_URL = '/api/auth/'
 
@@ -22,7 +22,7 @@ export interface UserInfo {
 export const login = async (username: string, password: string): Promise<void> => {
   try {
     // Call actual login API to get token
-    const response = await axios.post<LoginResponse>(`${API_URL}token`, {
+    const response = await axiosInstance.post<LoginResponse>(`${API_URL}token`, {
       username,
       password
     }, {
@@ -66,17 +66,8 @@ export const isAuthenticated = (): boolean => {
 }
 
 export const getUserInfo = async (): Promise<UserInfo | null> => {
-  const token = getToken()
-  if (!token) {
-    return null
-  }
-  
   try {
-    const response = await axios.get<UserInfo>(`${API_URL}users/me`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+    const response = await axiosInstance.get<UserInfo>(`${API_URL}users/me`)
     // Store user info in localStorage for quick access
     localStorage.setItem('userInfo', JSON.stringify(response.data))
     return response.data
@@ -88,17 +79,8 @@ export const getUserInfo = async (): Promise<UserInfo | null> => {
 
 // User management functions (admin only)
 export const getUsers = async (): Promise<UserInfo[]> => {
-  const token = getToken()
-  if (!token) {
-    throw new Error('Not authenticated')
-  }
-  
   try {
-    const response = await axios.get<UserInfo[]>(`${API_URL}users`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+    const response = await axiosInstance.get<UserInfo[]>(`${API_URL}users`)
     return response.data
   } catch (error) {
     console.error('Failed to get users:', error)
@@ -114,17 +96,8 @@ export const createUser = async (userData: {
   role: string
   disabled: boolean
 }): Promise<void> => {
-  const token = getToken()
-  if (!token) {
-    throw new Error('Not authenticated')
-  }
-  
   try {
-    await axios.post(`${API_URL}users`, userData, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+    await axiosInstance.post(`${API_URL}users`, userData)
   } catch (error) {
     console.error('Failed to create user:', error)
     throw error
@@ -142,11 +115,6 @@ export const updateUser = async (
     disabled: boolean
   }
 ): Promise<void> => {
-  const token = getToken()
-  if (!token) {
-    throw new Error('Not authenticated')
-  }
-  
   try {
     // Remove password if empty
     const updateData = { ...userData }
@@ -154,11 +122,7 @@ export const updateUser = async (
       delete updateData.password
     }
     
-    await axios.put(`${API_URL}users/${userId}`, updateData, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+    await axiosInstance.put(`${API_URL}users/${userId}`, updateData)
   } catch (error) {
     console.error('Failed to update user:', error)
     throw error
@@ -166,17 +130,8 @@ export const updateUser = async (
 }
 
 export const deleteUser = async (userId: number): Promise<void> => {
-  const token = getToken()
-  if (!token) {
-    throw new Error('Not authenticated')
-  }
-  
   try {
-    await axios.delete(`${API_URL}users/${userId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+    await axiosInstance.delete(`${API_URL}users/${userId}`)
   } catch (error) {
     console.error('Failed to delete user:', error)
     throw error
@@ -191,7 +146,7 @@ export const register = async (
   password: string
 ): Promise<void> => {
   try {
-    await axios.post(`${API_URL}register`, {
+    await axiosInstance.post(`${API_URL}register`, {
       username,
       email,
       full_name: fullName,
@@ -207,7 +162,7 @@ export const register = async (
 // Email verification function
 export const verifyEmail = async (token: string): Promise<{ message: string }> => {
   try {
-    const response = await axios.get(`${API_URL}verify-email`, {
+    const response = await axiosInstance.get(`${API_URL}verify-email`, {
       params: { token }
     })
     return response.data
@@ -220,7 +175,7 @@ export const verifyEmail = async (token: string): Promise<{ message: string }> =
 // Resend verification email function
 export const resendVerification = async (email: string): Promise<{ message: string }> => {
   try {
-    const response = await axios.post(`${API_URL}resend-verification`, {
+    const response = await axiosInstance.post(`${API_URL}resend-verification`, {
       email
     })
     return response.data
@@ -233,7 +188,7 @@ export const resendVerification = async (email: string): Promise<{ message: stri
 // Forgot password function
 export const forgotPassword = async (email: string): Promise<{ message: string }> => {
   try {
-    const response = await axios.post(`${API_URL}forgot-password`, {
+    const response = await axiosInstance.post(`${API_URL}forgot-password`, {
       email
     })
     return response.data
@@ -246,7 +201,7 @@ export const forgotPassword = async (email: string): Promise<{ message: string }
 // Reset password function
 export const resetPassword = async (token: string, newPassword: string): Promise<{ message: string }> => {
   try {
-    const response = await axios.post(`${API_URL}reset-password`, {
+    const response = await axiosInstance.post(`${API_URL}reset-password`, {
       token,
       new_password: newPassword
     })

@@ -15,6 +15,9 @@ class RemoteClient:
         self.timeout = settings.training_server_timeout
         self.max_retries = 3  # 最大重试次数
         self.base_retry_delay = 1.0  # 基础重试延迟（秒）
+        # 远程训练服务器认证信息
+        self.username = "idea"  # 远程训练服务器账号
+        self.password = "moshou99"  # 远程训练服务器密码
     
     async def _make_request(self, method: str, url: str, **kwargs) -> Optional[Dict[str, Any]]:
         """通用请求方法，带有重试机制和详细的异常处理"""
@@ -24,8 +27,11 @@ class RemoteClient:
             try:
                 logger.info(f"Making {method} request to {url} (attempt {retries + 1}/{self.max_retries})")
                 
+                # 添加基本认证
+                auth = aiohttp.BasicAuth(self.username, self.password)
+                
                 async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout)) as session:
-                    async with getattr(session, method)(url, **kwargs) as response:
+                    async with getattr(session, method)(url, auth=auth, **kwargs) as response:
                         logger.info(f"Received response from {url}: {response.status}")
                         
                         if response.status == 200:

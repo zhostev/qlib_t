@@ -9,13 +9,7 @@ class TaskService:
     @staticmethod
     def create_task(db: Session, experiment_id: int, task_type: str = "train", priority: int = 0, max_retries: int = 3, retry_delay: int = 5) -> Task:
         """创建新任务"""
-        # 更新实验状态为pending
-        experiment = db.query(Experiment).filter(Experiment.id == experiment_id).first()
-        if experiment:
-            experiment.status = "pending"
-            db.commit()
-        
-        # 创建任务
+        # 创建任务（不再更新实验状态，因为调用者已经更新过了）
         task = Task(
             experiment_id=experiment_id,
             task_type=task_type,

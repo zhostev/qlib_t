@@ -9,6 +9,7 @@ const Navigation: React.FC = () => {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -57,10 +58,17 @@ const Navigation: React.FC = () => {
     setShowUserMenu(!showUserMenu)
   }
 
+  // Toggle dropdown menu
+  const toggleDropdown = (e: React.MouseEvent, dropdownId: string) => {
+    e.stopPropagation()
+    setOpenDropdown(openDropdown === dropdownId ? null : dropdownId)
+  }
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setShowUserMenu(false)
+      setOpenDropdown(null)
     }
 
     document.addEventListener('click', handleClickOutside)
@@ -95,53 +103,97 @@ const Navigation: React.FC = () => {
               </NavLink>
             </li>
             <li className="nav-item">
-              <NavLink to="/experiments" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                实验管理
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink to="/backtest" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                回测管理
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink to="/risk" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                风险控制
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink to="/models" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                模型管理
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink to="/factors" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                因子管理
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink to="/factor-analysis" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                因子分析
-              </NavLink>
-            </li>
-            <li className="nav-item">
               <NavLink to="/data" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 数据管理
               </NavLink>
             </li>
-            <li className="nav-item">
-              <NavLink to="/configs" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                配置管理
-              </NavLink>
+            <li className="nav-item dropdown">
+              <button 
+                className={`nav-link dropdown-toggle ${openDropdown === 'research' ? 'active' : ''}`}
+                onClick={(e) => toggleDropdown(e, 'research')}
+              >
+                研究管理
+                <span className={`dropdown-icon ${openDropdown === 'research' ? 'rotated' : ''}`}>▼</span>
+              </button>
+              <ul className={`dropdown-menu ${openDropdown === 'research' ? 'open' : ''}`}>
+                <li>
+                  <NavLink to="/factors" className={({ isActive }) => isActive ? 'dropdown-link active' : 'dropdown-link'}>
+                    因子管理
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/factor-analysis" className={({ isActive }) => isActive ? 'dropdown-link active' : 'dropdown-link'}>
+                    因子分析
+                  </NavLink>
+                </li>
+              </ul>
             </li>
-            {/* Admin menu item - only visible to admins */}
-            {userInfo?.role === 'admin' && (
-              <li className="nav-item">
-                <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                  系统管理
-                </NavLink>
-              </li>
-            )}
+            <li className="nav-item dropdown">
+              <button 
+                className={`nav-link dropdown-toggle ${openDropdown === 'model' ? 'active' : ''}`}
+                onClick={(e) => toggleDropdown(e, 'model')}
+              >
+                模型与实验
+                <span className={`dropdown-icon ${openDropdown === 'model' ? 'rotated' : ''}`}>▼</span>
+              </button>
+              <ul className={`dropdown-menu ${openDropdown === 'model' ? 'open' : ''}`}>
+                <li>
+                  <NavLink to="/models" className={({ isActive }) => isActive ? 'dropdown-link active' : 'dropdown-link'}>
+                    模型管理
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/experiments" className={({ isActive }) => isActive ? 'dropdown-link active' : 'dropdown-link'}>
+                    实验管理
+                  </NavLink>
+                </li>
+              </ul>
+            </li>
+            <li className="nav-item dropdown">
+              <button 
+                className={`nav-link dropdown-toggle ${openDropdown === 'backtest' ? 'active' : ''}`}
+                onClick={(e) => toggleDropdown(e, 'backtest')}
+              >
+                回测与风控
+                <span className={`dropdown-icon ${openDropdown === 'backtest' ? 'rotated' : ''}`}>▼</span>
+              </button>
+              <ul className={`dropdown-menu ${openDropdown === 'backtest' ? 'open' : ''}`}>
+                <li>
+                  <NavLink to="/backtest" className={({ isActive }) => isActive ? 'dropdown-link active' : 'dropdown-link'}>
+                    回测管理
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/risk" className={({ isActive }) => isActive ? 'dropdown-link active' : 'dropdown-link'}>
+                    风险控制
+                  </NavLink>
+                </li>
+              </ul>
+            </li>
+            <li className="nav-item dropdown">
+              <button 
+                className={`nav-link dropdown-toggle ${openDropdown === 'system' ? 'active' : ''}`}
+                onClick={(e) => toggleDropdown(e, 'system')}
+              >
+                系统设置
+                <span className={`dropdown-icon ${openDropdown === 'system' ? 'rotated' : ''}`}>▼</span>
+              </button>
+              <ul className={`dropdown-menu ${openDropdown === 'system' ? 'open' : ''}`}>
+                <li>
+                  <NavLink to="/configs" className={({ isActive }) => isActive ? 'dropdown-link active' : 'dropdown-link'}>
+                    配置管理
+                  </NavLink>
+                </li>
+                {/* Admin menu item - only visible to admins */}
+                {userInfo?.role === 'admin' && (
+                  <li>
+                    <NavLink to="/admin" className={({ isActive }) => isActive ? 'dropdown-link active' : 'dropdown-link'}>
+                      系统管理
+                    </NavLink>
+                  </li>
+                )}
+              </ul>
+            </li>
           </ul>
           <div className="nav-user">
             {isLoading ? (

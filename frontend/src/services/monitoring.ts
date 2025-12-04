@@ -1,4 +1,7 @@
-import axios from 'axios'
+import axiosInstance from './axiosInstance'
+
+// Re-export axiosInstance for convenience
+const axios = axiosInstance
 import { getToken } from './auth'
 
 const API_URL = '/api/monitoring/'
