@@ -39,7 +39,8 @@ def authenticate_user(db: Session, username: str, password: str):
                 username=username,
                 password_hash=hashed_password,
                 role="admin",
-                disabled=False
+                disabled=False,
+                email_verified=True
             )
             db.add(user)
             db.commit()
@@ -53,6 +54,10 @@ def authenticate_user(db: Session, username: str, password: str):
     
     # Check if user is disabled
     if user.disabled:
+        return False
+    
+    # Check if email is verified (if email exists)
+    if user.email and not user.email_verified:
         return False
     
     # Verify password

@@ -5,6 +5,7 @@ from app.db.database import get_db
 from app.models.user import User
 from app.schemas.auth import Token, TokenData, UserResponse, UserCreate, UserUpdate
 from app.services.auth import authenticate_user, create_access_token, get_user, get_password_hash
+from app.services.email_service import send_verification_email, verify_email_token, resend_verification_email, send_password_reset_email, verify_password_reset_token, reset_user_password
 from app.db.database import settings
 from app.api.deps import get_current_active_user, get_current_admin_user
 from datetime import datetime, timedelta
@@ -147,3 +148,128 @@ def delete_user(
     db.delete(db_user)
     db.commit()
     return {"message": "User deleted successfully"}
+
+
+@router.post("/register", response_model=UserResponse)
+def register_user(
+    user: UserCreate,
+    db: Session = Depends(get_db)
+):
+    """Register a new user"""
+    # Check if username already exists
+    db_user = get_user(db, username=user.username)
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already registered"
+        )
+    
+    # Check if email already exists
+    if user.email:
+        existing_email = db.query(User).filter(User.email == user.email).first()
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+    
+    # Create new user
+    hashed_password = get_password_hash(user.password)
+    db_user = User(
+        username=user.username,
+        email=user.email,
+        full_name=user.full_name,
+        password_hash=hashed_password,
+        role=user.role
+    )
+    
+    # Send verification email if email is provided
+    if user.email:
+        send_verification_email(db_user)
+    
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+@router.get("/verify-email")
+def verify_email(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """Verify email address using token"""
+    user, message = verify_email_token(db, token)
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message
+        )
+    
+    # Commit changes to database
+    db.commit()
+    db.refresh(user)
+    
+    return {"message": message, "user": UserResponse.from_orm(user)}
+
+
+@router.post("/resend-verification")
+def resend_verification(
+    email: str,
+    db: Session = Depends(get_db)
+):
+    """Resend verification email"""
+    success, message = resend_verification_email(db, email)
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message
+        )
+    
+    return {"message": message}
+
+
+@router.post("/forgot-password")
+def forgot_password(
+    email: str,
+    db: Session = Depends(get_db)
+):
+    """Request password reset"""
+    # Find user by email
+    user = db.query(User).filter(User.email == email).first()
+    
+    if not user:
+        # Don't reveal that user doesn't exist for security reasons
+        return {"message": "If the email exists in our system, a password reset link has been sent"}
+    
+    # Send password reset email
+    send_password_reset_email(user)
+    
+    return {"message": "If the email exists in our system, a password reset link has been sent"}
+
+
+@router.post("/reset-password")
+def reset_password(
+    token: str,
+    new_password: str,
+    db: Session = Depends(get_db)
+):
+    """Reset password using token"""
+    # Verify the password reset token
+    user, message = verify_password_reset_token(db, token)
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message
+        )
+    
+    # Reset the password
+    user, message = reset_user_password(user, new_password)
+    
+    db.commit()
+    db.refresh(user)
+    
+    return {"message": message}

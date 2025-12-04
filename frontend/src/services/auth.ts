@@ -182,3 +182,77 @@ export const deleteUser = async (userId: number): Promise<void> => {
     throw error
   }
 }
+
+// User registration function
+export const register = async (
+  username: string,
+  email: string,
+  fullName: string,
+  password: string
+): Promise<void> => {
+  try {
+    await axios.post(`${API_URL}register`, {
+      username,
+      email,
+      full_name: fullName,
+      password,
+      role: 'viewer' // Default role for new users
+    })
+  } catch (error) {
+    console.error('Registration failed:', error)
+    throw error
+  }
+}
+
+// Email verification function
+export const verifyEmail = async (token: string): Promise<{ message: string }> => {
+  try {
+    const response = await axios.get(`${API_URL}verify-email`, {
+      params: { token }
+    })
+    return response.data
+  } catch (error) {
+    console.error('Email verification failed:', error)
+    throw error
+  }
+}
+
+// Resend verification email function
+export const resendVerification = async (email: string): Promise<{ message: string }> => {
+  try {
+    const response = await axios.post(`${API_URL}resend-verification`, {
+      email
+    })
+    return response.data
+  } catch (error) {
+    console.error('Failed to resend verification email:', error)
+    throw error
+  }
+}
+
+// Forgot password function
+export const forgotPassword = async (email: string): Promise<{ message: string }> => {
+  try {
+    const response = await axios.post(`${API_URL}forgot-password`, {
+      email
+    })
+    return response.data
+  } catch (error) {
+    console.error('Failed to send password reset link:', error)
+    throw error
+  }
+}
+
+// Reset password function
+export const resetPassword = async (token: string, newPassword: string): Promise<{ message: string }> => {
+  try {
+    const response = await axios.post(`${API_URL}reset-password`, {
+      token,
+      new_password: newPassword
+    })
+    return response.data
+  } catch (error) {
+    console.error('Failed to reset password:', error)
+    throw error
+  }
+}

@@ -1,30 +1,24 @@
 #!/usr/bin/env python3
-"""
-Check users in the database
-"""
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from app.models.user import User
 
-from sqlalchemy import create_engine, text
-from dotenv import load_dotenv
-import os
+# Create database engine
+engine = create_engine('mysql+pymysql://hoo:Moshou99@rm-bp146d0y4vo46bn72co.mysql.rds.aliyuncs.com/qlib_ai')
+Session = sessionmaker(bind=engine)
+db = Session()
 
-# Load environment variables
-load_dotenv()
-
-# Create database connection
-DATABASE_URL = os.getenv('DATABASE_URL')
-engine = create_engine(DATABASE_URL)
-
-# Check users in the database
-with engine.connect() as conn:
-    result = conn.execute(text('SELECT id, username, email, role, disabled, created_at FROM users'))
-    users = result.fetchall()
-    
-    print("Users in the database:")
-    print(f"{'ID':<5} {'Username':<15} {'Email':<25} {'Role':<15} {'Disabled':<10} {'Created At':<25}")
-    print("-" * 100)
-    
+try:
+    # Query all users
+    users = db.query(User).all()
+    print(f"Found {len(users)} users:")
     for user in users:
-        print(f"{user[0]:<5} {user[1]:<15} {user[2] if user[2] else '':<25} {user[3]:<15} {user[4]:<10} {user[5]:<25}")
-    
-    if not users:
-        print("No users found in the database")
+        print(f"  ID: {user.id}")
+        print(f"  Username: {user.username}")
+        print(f"  Role: {user.role}")
+        print(f"  Disabled: {user.disabled}")
+        print(f"  Email Verified: {user.email_verified}")
+        print(f"  Password Hash: {user.password_hash[:20]}...")
+        print("  --")
+finally:
+    db.close()

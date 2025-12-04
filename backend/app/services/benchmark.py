@@ -2,10 +2,8 @@ import os
 import yaml
 from typing import List, Dict, Any
 
-# 确定项目根目录
-current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# Benchmark目录路径
-BENCHMARK_DIR = os.path.join(current_dir, "examples", "benchmarks")
+# Benchmark目录路径 - 使用绝对路径
+BENCHMARK_DIR = "/home/qlib_t/examples/benchmarks"
 
 class BenchmarkService:
     @staticmethod

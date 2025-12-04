@@ -1,5 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom'
 import Login from './pages/Login'
+import Register from './pages/Register'
+import VerifyEmail from './pages/VerifyEmail'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Experiments from './pages/Experiments'
 import ExperimentDetail from './pages/ExperimentDetail'
@@ -36,6 +40,11 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           
           {/* Protected routes for all authenticated users */}
               <Route element={<PrivateRoute />}>

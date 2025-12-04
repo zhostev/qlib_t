@@ -113,6 +113,12 @@ const Login: React.FC = () => {
           )}
         </div>
         {error && <div className="error login-error">{error}</div>}
+        <div className="login-options">
+          <a href="/forgot-password" className="forgot-password-link">
+            Forgot Password?
+          </a>
+        </div>
+        
         <button 
           type="submit" 
           className="btn btn-primary login-btn"
@@ -128,6 +134,9 @@ const Login: React.FC = () => {
           <p className="login-help">
             <span>Default credentials: </span>
             <strong>username: admin, password: admin123</strong>
+          </p>
+          <p className="login-register">
+            Don't have an account? <a href="/register">Register here</a>
           </p>
         </div>
       </form>

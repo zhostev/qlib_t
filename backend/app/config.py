@@ -21,6 +21,17 @@ class Settings:
     # API settings
     api_v1_str = "/api"
     project_name = "QLib AI API"
+    
+    # Email settings
+    smtp_server = os.getenv("SMTP_SERVER", "smtphz.qiye.163.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "994"))
+    smtp_username = os.getenv("SMTP_USERNAME", "qlib@uszho.com")
+    smtp_password = os.getenv("SMTP_PASSWORD", "Moshou99")
+    smtp_use_tls = os.getenv("SMTP_USE_TLS", "True").lower() in ("true", "1", "t")
+    sender_email = os.getenv("SENDER_EMAIL", "qlib@uszho.com")
+    
+    # Email verification settings
+    verification_token_expire_minutes = int(os.getenv("VERIFICATION_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
 
 # Create settings instance
 settings = Settings()
