@@ -62,10 +62,12 @@ class SystemMonitor:
         services = {
             "local_api": {
                 "status": "running",
+                "is_running": True,
                 "details": "本地API服务正常运行"
             },
             "ddns_training_server": {
                 "status": "unreachable",
+                "is_running": False,
                 "details": "无法连接到DDNS训练服务器",
                 "server_url": self.remote_client.server_url
             }
@@ -76,16 +78,19 @@ class SystemMonitor:
             remote_healthy = self.remote_client.sync_health_check()
             if remote_healthy:
                 services["ddns_training_server"]["status"] = "healthy"
+                services["ddns_training_server"]["is_running"] = True
                 services["ddns_training_server"]["details"] = "DDNS训练服务器运行正常"
                 
                 # 不尝试获取详细服务器状态，避免嵌套事件循环问题
                 # 如果需要详细状态，可以考虑添加同步版本的方法或使用其他方式
             else:
                 services["ddns_training_server"]["status"] = "unhealthy"
+                services["ddns_training_server"]["is_running"] = False
                 services["ddns_training_server"]["details"] = "DDNS训练服务器响应异常"
         except Exception as e:
             logger.error(f"Error checking DDNS training server status: {e}")
             services["ddns_training_server"]["status"] = "error"
+            services["ddns_training_server"]["is_running"] = False
             services["ddns_training_server"]["details"] = f"检查DDNS训练服务器时出错: {str(e)}"
         
         return services

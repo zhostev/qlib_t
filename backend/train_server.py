@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, APIRouter
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -7,7 +7,7 @@ import logging
 import psutil
 import os
 from datetime import datetime, timedelta
-
+from app.api import train
 from app.db.database import engine, Base
 
 # Create all database tables
@@ -52,15 +52,15 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(os.path.join(log_dir, 'uvicorn.log'), mode='a')  # Use absolute path for log file
+        logging.FileHandler(os.path.join(log_dir, 'train_server.log'), mode='a')  # Use absolute path for log file
     ]
 )
 logger = logging.getLogger(__name__)
 
-# Create FastAPI application
+# Create FastAPI application for training server only
 app = FastAPI(
-    title="QLib AI API",
-    description="API for managing QLib experiments and models",
+    title="QLib Training API",
+    description="API for managing QLib training tasks",
     version="1.0.0",
 )
 
@@ -186,62 +186,73 @@ async def log_requests(request, call_next):
     
     return response
 
-# Add performance monitoring middleware - optimized version
-@app.middleware("http")
-async def monitor_performance(request, call_next):
-    """Middleware to monitor request performance"""
-    import time
-    
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    
-    # Add X-Process-Time header to response
-    response.headers["X-Process-Time"] = f"{process_time:.4f}"
-    
-    # Log slow requests
-    if process_time > 1.0:  # Log requests taking more than 1 second
-        client_ip = request.client.host if request.client else "unknown"
-        logger.warning(f"Slow Request: {request.method} {request.url} from {client_ip} - Time: {process_time:.4f}s")
-    
-    return response
+# Include ONLY training API router
+app.include_router(train.router, prefix="/api")
 
-# Include API router without training endpoints
-from app.api import auth, experiments, models, configs, benchmarks, factors, data, monitoring
+# WebSocket endpoint for real-time training updates
+@app.websocket("/ws/train/{task_id}")
+async def websocket_train(websocket: WebSocket, task_id: str):
+    """WebSocket endpoint for real-time training updates with heartbeat support"""
+    await manager.connect(websocket, task_id)
+    try:
+        import asyncio
+        
+        # Task to send periodic heartbeat messages
+        async def send_heartbeat():
+            while True:
+                try:
+                    # Send a heartbeat message to keep the connection alive
+                    await websocket.send_json({"type": "heartbeat", "timestamp": datetime.utcnow().isoformat()})
+                    await asyncio.sleep(30)  # Send heartbeat every 30 seconds
+                except Exception as e:
+                    logger.error(f"Heartbeat error for task {task_id}: {e}")
+                    break
+        
+        # Start heartbeat task
+        heartbeat_task = asyncio.create_task(send_heartbeat())
+        
+        # Listen for messages from client (including pong responses)
+        while True:
+            try:
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=60.0)  # Timeout after 60 seconds
+                # Handle client messages if needed
+                if data == "pong":
+                    logger.debug(f"Received pong from client for task {task_id}")
+            except asyncio.TimeoutError:
+                # If no message from client for 60 seconds, close connection
+                logger.warning(f"WebSocket timeout for task {task_id}, closing connection")
+                break
+            except WebSocketDisconnect:
+                logger.info(f"WebSocket disconnected for task {task_id}")
+                break
+            except Exception as e:
+                logger.error(f"WebSocket error for task {task_id}: {e}")
+                break
+        
+        # Cancel heartbeat task when connection closes
+        heartbeat_task.cancel()
+        await asyncio.gather(heartbeat_task, return_exceptions=True)
+        
+    except Exception as e:
+        logger.error(f"WebSocket main loop error for task {task_id}: {e}")
+    finally:
+        manager.disconnect(websocket, task_id)
 
-# Create main API router without training
-main_api_router = APIRouter()
-
-# Include sub-routers except training
-main_api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
-main_api_router.include_router(experiments.router, prefix="/experiments", tags=["experiments"])
-main_api_router.include_router(models.router, prefix="/models", tags=["models"])
-main_api_router.include_router(configs.router, prefix="/configs", tags=["configs"])
-main_api_router.include_router(benchmarks.router, prefix="/benchmarks", tags=["benchmarks"])
-main_api_router.include_router(factors.router, prefix="/factors", tags=["factors"])
-main_api_router.include_router(data.router, prefix="/data", tags=["data"])
-main_api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
-
-# Include main API router
-app.include_router(main_api_router, prefix="/api")
-
-# Root endpoint
+# Root endpoint for training server
 @app.get("/")
 def root():
-    return {"message": "Welcome to QLib AI API"}
+    return {"message": "Welcome to QLib Training API"}
 
-# Health check endpoint
+# Health check endpoint for training server
 @app.get("/health")
 def health_check():
     """Health check endpoint for monitoring"""
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "QLib AI API",
+        "service": "QLib Training API",
         "version": "1.0.0"
     }
-
-
 
 # System status endpoint with detailed monitoring information
 @app.get("/status")
@@ -261,7 +272,7 @@ def system_status():
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "QLib AI API",
+        "service": "QLib Training API",
         "version": "1.0.0",
         "system": {
             "process_id": os.getpid(),
@@ -301,8 +312,6 @@ def system_status():
             "openapi_json": "/openapi.json"
         }
     }
-
-
 
 # Export WebSocket manager for use in other modules
 global_websocket_manager = manager

@@ -1922,11 +1922,33 @@ a:hover {
   font-weight: 600;
 }
 
+.status-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .status-badge {
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
+}
+
+.running-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.running-indicator.running {
+  color: #4caf50;
+}
+
+.running-indicator.not-running {
+  color: #f44336;
 }
 
 .status-healthy {

@@ -80,13 +80,13 @@ class RemoteClient:
     
     async def get_task_status(self, task_id: str) -> Optional[Dict[str, Any]]:
         """获取远程任务状态"""
-        url = f"{self.server_url}/api/tasks/{task_id}"
+        url = f"{self.server_url}/api/train/tasks/{task_id}"
         logger.info(f"Getting status for task {task_id} from {url}")
         return await self._make_request("get", url)
     
     async def cancel_task(self, task_id: str) -> Optional[Dict[str, Any]]:
         """取消远程任务"""
-        url = f"{self.server_url}/api/tasks/{task_id}/cancel"
+        url = f"{self.server_url}/api/train/tasks/{task_id}/cancel"
         logger.info(f"Cancelling task {task_id} at {url}")
         headers = {"Content-Type": "application/json"}
         return await self._make_request("post", url, headers=headers)
@@ -94,7 +94,7 @@ class RemoteClient:
     async def get_task_results(self, task_id: str) -> Optional[Dict[str, Any]]:
         """获取远程任务结果"""
         # 先尝试直接获取结果
-        results_url = f"{self.server_url}/api/tasks/{task_id}/results"
+        results_url = f"{self.server_url}/api/train/tasks/{task_id}/results"
         logger.info(f"Getting results for task {task_id} from {results_url}")
         results = await self._make_request("get", results_url)
         

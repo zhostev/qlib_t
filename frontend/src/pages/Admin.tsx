@@ -539,12 +539,17 @@ const Admin: React.FC = () => {
                     <div className="service-card" key={serviceName}>
                       <div className="service-header">
                         <h4>{serviceName === 'local_api' ? '本地API服务' : 'DDNS模型训练服务'}</h4>
-                        <span className={`status-badge status-${service.status}`}>
-                          {service.status === 'healthy' ? '正常' : 
-                           service.status === 'unhealthy' ? '异常' : 
-                           service.status === 'running' ? '运行中' : 
-                           '不可达'}
-                        </span>
+                        <div className="status-container">
+                          <span className={`status-badge status-${service.status}`}>
+                            {service.status === 'healthy' ? '正常' : 
+                             service.status === 'unhealthy' ? '异常' : 
+                             service.status === 'running' ? '运行中' : 
+                             '不可达'}
+                          </span>
+                          <span className={`running-indicator ${service.is_running ? 'running' : 'not-running'}`}>
+                            {service.is_running ? '● 运行中' : '● 已停止'}
+                          </span>
+                        </div>
                       </div>
                       <div className="service-details">
                         <p>{service.details}</p>

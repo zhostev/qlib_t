@@ -6,6 +6,7 @@ from app.models.experiment import Experiment
 from app.models.model_version import ModelVersion
 from app.models.factor import Factor, FactorGroup
 from app.models.stock_data import StockData
+from app.models.task import Task
 from app.services.auth import get_password_hash
 from datetime import datetime, timedelta
 

@@ -74,7 +74,12 @@ task_manager = TrainingTaskManager()
 # 模拟模型训练函数
 async def train_model(task_id: str, config: Dict[str, Any]):
     """模拟模型训练过程"""
-    from main import manager as websocket_manager
+    try:
+        # Try to import from train_server first (for standalone training server)
+        from train_server import manager as websocket_manager
+    except ImportError:
+        # Fallback to main import (for integrated server)
+        from main import manager as websocket_manager
     
     # 更新任务状态为运行中
     await task_manager.update_task(
