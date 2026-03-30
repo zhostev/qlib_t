@@ -50,8 +50,11 @@ class LocalTrainer:
             uri = os.path.expanduser(uri)
 
             if not os.path.exists(uri):
-                logger.warning(f"QLib data directory not found: {uri}. Training may fail.")
-                os.makedirs(uri, exist_ok=True)
+                raise RuntimeError(
+                    f"QLib data directory not found: {uri}. "
+                    "Please download qlib data first using: "
+                    "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn"
+                )
 
             qlib.init(provider_uri=uri, region=REG_CN)
             self._qlib_initialized = True
@@ -249,6 +252,7 @@ class LocalTrainer:
         """Build a full qlib workflow config from simplified parameters."""
 
         # Map model names to qlib class paths
+        # Default LGBModel hyperparameters are from the qlib Alpha158 benchmark config
         model_map = {
             "LGBModel": {
                 "class": "LGBModel",

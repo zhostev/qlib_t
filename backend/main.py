@@ -305,17 +305,16 @@ global_websocket_manager = manager
 
 # WebSocket endpoint for training log streaming
 @app.websocket("/ws/logs/{task_id}")
-async def websocket_log_endpoint(websocket: WebSocket, task_id: str):
+async def websocket_log_endpoint(websocket: WebSocket, task_id: int):
     """WebSocket endpoint for real-time training log streaming"""
-    await manager.connect(websocket, task_id)
+    task_key = str(task_id)
+    await manager.connect(websocket, task_key)
     try:
         while True:
-            # Keep connection alive, receive any client messages
             data = await websocket.receive_text()
-            # Client can send heartbeat messages
             if data == "ping":
                 await websocket.send_text("pong")
     except WebSocketDisconnect:
-        manager.disconnect(websocket, task_id)
+        manager.disconnect(websocket, task_key)
     except Exception:
-        manager.disconnect(websocket, task_id)
+        manager.disconnect(websocket, task_key)

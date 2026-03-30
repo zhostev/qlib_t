@@ -1,8 +1,11 @@
 import os
+import warnings
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+_DEFAULT_SECRET_KEY = "change-me-in-production"
 
 class Settings:
     """Application settings"""
@@ -10,7 +13,7 @@ class Settings:
     database_url = os.getenv("DATABASE_URL", "sqlite:///./test.db")
     
     # Security settings
-    secret_key = os.getenv("SECRET_KEY", "change-me-in-production")
+    secret_key = os.getenv("SECRET_KEY", _DEFAULT_SECRET_KEY)
     algorithm = os.getenv("ALGORITHM", "HS256")
     access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     
@@ -42,3 +45,12 @@ class Settings:
 
 # Create settings instance
 settings = Settings()
+
+# Warn about insecure default secret key
+if settings.secret_key == _DEFAULT_SECRET_KEY:
+    warnings.warn(
+        "SECRET_KEY is set to the default value. "
+        "Set a strong random SECRET_KEY environment variable for production use.",
+        UserWarning,
+        stacklevel=1,
+    )

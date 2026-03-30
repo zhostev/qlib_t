@@ -19,7 +19,11 @@ from app.services.local_trainer import LocalTrainer
 
 # Configure logging
 log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
-os.makedirs(log_dir, exist_ok=True)
+try:
+    os.makedirs(log_dir, exist_ok=True)
+except OSError as e:
+    log_dir = "/tmp"
+    print(f"Warning: Could not create log directory, using /tmp: {e}", file=sys.stderr)
 
 logging.basicConfig(
     level=logging.INFO,
