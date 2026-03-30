@@ -1,293 +1,195 @@
 #!/usr/bin/env python3
 """
-训练节点应用，用于执行模型训练任务
-从数据库中获取待执行的任务，并调用现有的训练函数来执行任务
+Training worker that executes model training tasks.
+Polls the database for pending tasks and runs qlib training locally.
 """
 
 import asyncio
 import logging
 import os
 import sys
-from sqlalchemy.orm import Session
-from app.db.database import engine, SessionLocal, Base
-from app.services.task import TaskService
-from app.utils.remote_client import RemoteClient
-from app.models.experiment import Experiment
+import json
+from datetime import datetime
 
-# 配置详细日志
+from sqlalchemy.orm import Session
+from app.db.database import SessionLocal, Base, engine
+from app.services.task import TaskService
+from app.models.experiment import Experiment
+from app.services.local_trainer import LocalTrainer
+
+# Configure logging
+log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(log_dir, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('/home/qlib_t/backend/logs/train_worker_init.log', mode='a')
-    ]
+        logging.FileHandler(os.path.join(log_dir, "train_worker.log"), mode="a"),
+    ],
 )
 logger = logging.getLogger(__name__)
 
-# 启动时的环境检查
 logger.info(f"Starting train_worker.py with Python {sys.version}")
 logger.info(f"Current working directory: {os.getcwd()}")
-logger.info(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'Not set')}")
 
-# 验证必要的模块是否可用
-try:
-    import sqlalchemy
-    logger.info(f"SQLAlchemy version: {sqlalchemy.__version__}")
-except ImportError as e:
-    logger.error(f"Failed to import SQLAlchemy: {e}")
-    sys.exit(1)
-
-try:
-    import aiohttp
-    logger.info(f"aiohttp version: {aiohttp.__version__}")
-except ImportError as e:
-    logger.error(f"Failed to import aiohttp: {e}")
-    sys.exit(1)
 
 class TrainWorker:
-    def __init__(self, worker_id: str, max_workers: int = 2):
+    def __init__(self, worker_id: str, max_workers: int = 2, poll_interval: int = 5):
         self.worker_id = worker_id
         self.max_workers = max_workers
+        self.poll_interval = poll_interval
         self.running = False
-        try:
-            logger.info("Initializing RemoteClient...")
-            self.remote_client = RemoteClient()
-            logger.info("RemoteClient initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize RemoteClient: {e}")
-            self.remote_client = None
-    
-    def get_db(self):
-        """获取数据库会话"""
+        self._active_tasks: set = set()
+
+    def _get_db(self) -> Session:
         return SessionLocal()
-    
+
     async def run(self):
-        """启动任务执行器"""
+        """Main loop: poll for pending tasks and execute them."""
         self.running = True
-        logger.info(f"Train worker {self.worker_id} started")
-        
-        # 验证与远程服务器的连接
-        if self.remote_client:
-            if not await self.remote_client.health_check():
-                logger.error("Failed to connect to remote training server. Worker will continue but tasks may fail.")
-        else:
-            logger.error("RemoteClient not initialized. Worker will continue but tasks may fail.")
-        
+        logger.info(f"Train worker '{self.worker_id}' started (max_workers={self.max_workers})")
+
         while self.running:
             try:
-                db = self.get_db()
-                # 获取待处理任务
-                tasks = TaskService.get_pending_tasks(db, limit=self.max_workers)
-                
-                if not tasks:
-                    # 没有待处理任务，等待一段时间
-                    logger.info(f"No pending tasks, waiting for 5 seconds...")
-                    await asyncio.sleep(5)
+                available_slots = self.max_workers - len(self._active_tasks)
+                if available_slots <= 0:
+                    await asyncio.sleep(self.poll_interval)
                     continue
-                
-                # 并行执行任务
-                await asyncio.gather(*[self.process_task(task) for task in tasks])
+
+                db = self._get_db()
+                try:
+                    tasks = TaskService.get_pending_tasks(db, limit=available_slots)
+                finally:
+                    db.close()
+
+                if not tasks:
+                    await asyncio.sleep(self.poll_interval)
+                    continue
+
+                for task in tasks:
+                    if task.id not in self._active_tasks:
+                        self._active_tasks.add(task.id)
+                        asyncio.create_task(self._process_task_wrapper(task.id, task.experiment_id))
+
             except Exception as e:
-                logger.error(f"Error in train worker: {e}")
-                await asyncio.sleep(5)
-    
-    async def process_task(self, task):
-        """处理单个任务"""
-        logger.info(f"Processing task {task.id} for experiment {task.experiment_id}")
-        
-        db = self.get_db()
+                logger.error(f"Error in worker main loop: {e}", exc_info=True)
+                await asyncio.sleep(self.poll_interval)
+
+    async def _process_task_wrapper(self, task_id: int, experiment_id: int):
+        """Wrapper to ensure task is removed from active set when done."""
         try:
-            # 获取实验信息
-            experiment = db.query(Experiment).filter(Experiment.id == task.experiment_id).first()
+            await self._process_task(task_id, experiment_id)
+        finally:
+            self._active_tasks.discard(task_id)
+
+    async def _process_task(self, task_id: int, experiment_id: int):
+        """Process a single training task."""
+        logger.info(f"Processing task {task_id} for experiment {experiment_id}")
+
+        db = self._get_db()
+        try:
+            experiment = db.query(Experiment).filter(Experiment.id == experiment_id).first()
             if not experiment:
-                logger.error(f"Experiment {task.experiment_id} not found for task {task.id}")
-                TaskService.update_task_status(db, task.id, "failed", error="Experiment not found")
+                logger.error(f"Experiment {experiment_id} not found for task {task_id}")
+                TaskService.update_task_status(db, task_id, "failed", error="Experiment not found")
                 return
-            
-            # 更新任务状态为运行中
-            TaskService.update_task_status(db, task.id, "running", progress=0)
-            
-            # 检查remote_client是否可用
-            if not self.remote_client:
-                logger.error(f"Cannot process task {task.id}: RemoteClient not initialized")
-                TaskService.update_task_status(db, task.id, "failed", error="RemoteClient not initialized")
-                return
-            
-            # 执行任务
-            if task.task_type == "train":
-                # 构建任务数据
-                task_data = {
-                    "experiment_id": task.experiment_id,
-                    "name": experiment.name,
-                    "config": experiment.config,
-                    "task_id": task.id
-                }
-                
-                # 提交任务到远程服务器
-                remote_result = await self.remote_client.submit_task(task_data)
-                
-                if not remote_result:
-                    logger.error(f"Failed to submit task {task.id} to remote server")
-                    TaskService.update_task_status(db, task.id, "failed", error="Failed to submit task to remote server")
-                    return
-                
-                # 获取远程任务ID
-                remote_task_id = remote_result.get("task_id")
-                if not remote_task_id:
-                    logger.error(f"No task_id returned from remote server for task {task.id}")
-                    TaskService.update_task_status(db, task.id, "failed", error="No task_id returned from remote server")
-                    return
-                
-                logger.info(f"Task {task.id} submitted to remote server with remote_task_id: {remote_task_id}")
-                
-                # 轮询任务状态
-                await self.poll_task_status(task, remote_task_id, db)
-            else:
-                # 其他任务类型
-                logger.warning(f"Unknown task type: {task.task_type}")
-                TaskService.update_task_status(db, task.id, "failed", error=f"Unknown task type: {task.task_type}")
+
+            # Mark task as running
+            TaskService.update_task_status(db, task_id, "running", progress=0)
+
+            experiment_config = experiment.config or {}
+
+            # Create progress callback
+            def progress_callback(progress: int, message: str):
+                try:
+                    inner_db = self._get_db()
+                    try:
+                        TaskService.update_task_status(inner_db, task_id, "running", progress=progress)
+                        # Also add log entry
+                        self._add_log(inner_db, experiment_id, message)
+                    finally:
+                        inner_db.close()
+                except Exception as e:
+                    logger.warning(f"Failed to update progress for task {task_id}: {e}")
+
+            # Run training in a thread to avoid blocking the event loop
+            trainer = LocalTrainer(progress_callback=progress_callback)
+
+            loop = asyncio.get_event_loop()
+            results = await loop.run_in_executor(
+                None, trainer.run_training, experiment_config
+            )
+
+            # Update task with results
+            db_fresh = self._get_db()
+            try:
+                if results.get("status") == "completed":
+                    performance = results.get("performance", {})
+                    TaskService.update_task_status(
+                        db_fresh, task_id, "completed",
+                        progress=100,
+                        result={"performance": performance, "model_class": results.get("model_class", "unknown")},
+                    )
+                    self._add_log(db_fresh, experiment_id, "Training completed successfully")
+                    logger.info(f"Task {task_id} completed successfully")
+                else:
+                    error_msg = results.get("error", "Unknown error")
+                    task = TaskService.get_task(db_fresh, task_id)
+                    if task and task.retries < task.max_retries:
+                        logger.info(f"Task {task_id} failed, scheduling retry ({task.retries + 1}/{task.max_retries})")
+                        TaskService.retry_task(db_fresh, task_id)
+                        self._add_log(db_fresh, experiment_id, f"Training failed, retrying: {error_msg}")
+                    else:
+                        TaskService.update_task_status(db_fresh, task_id, "failed", error=error_msg)
+                        self._add_log(db_fresh, experiment_id, f"Training failed: {error_msg}")
+                        logger.error(f"Task {task_id} failed: {error_msg}")
+            finally:
+                db_fresh.close()
+
         except Exception as e:
-            # 更新任务状态为失败
-            logger.error(f"Task {task.id} failed: {e}")
-            TaskService.update_task_status(db, task.id, "failed", error=str(e))
+            logger.error(f"Task {task_id} processing error: {e}", exc_info=True)
+            try:
+                TaskService.update_task_status(db, task_id, "failed", error=str(e))
+                self._add_log(db, experiment_id, f"Task processing error: {e}")
+            except Exception:
+                pass
         finally:
             db.close()
-    
-    async def process_websocket_updates(self, task, remote_task_id, db):
-        """处理WebSocket更新"""
-        def update_callback(data):
-            """处理WebSocket更新的回调函数"""
-            try:
-                logger.info(f"Received WebSocket update for task {task.id}: {data}")
-                
-                # 更新本地任务状态和进度
-                status = data.get("status", "unknown")
-                progress = data.get("progress", 0)
-                error = data.get("error", None)
-                result = data.get("result", None)
-                
-                # 更新任务状态
-                db = self.get_db()
-                TaskService.update_task_status(db, task.id, status, progress=progress, error=error, result=result)
-                db.close()
-                
-                # 如果任务完成，记录日志
-                if status in ["completed", "failed", "cancelled"]:
-                    logger.info(f"Task {task.id} completed with status: {status}")
-            except Exception as e:
-                logger.error(f"Error handling WebSocket update: {e}")
-        
-        # 连接WebSocket
-        await self.remote_client.connect_websocket(remote_task_id, update_callback)
-    
-    async def poll_task_status(self, task, remote_task_id, db):
-        """轮询远程任务状态"""
-        logger.info(f"Starting to poll status for remote task {remote_task_id}")
-        
-        # 启动WebSocket更新处理
-        ws_task = asyncio.create_task(self.process_websocket_updates(task, remote_task_id, db))
-        
+
+    def _add_log(self, db: Session, experiment_id: int, message: str):
+        """Add a log entry for the experiment."""
         try:
-            while True:
-                # 获取远程任务状态（作为备份，主要依赖WebSocket更新）
-                status_result = await self.remote_client.get_task_status(remote_task_id)
-                
-                if status_result:
-                    # 解析任务状态
-                    remote_status = status_result.get("status", "unknown")
-                    progress = status_result.get("progress", 0)
-                    error = status_result.get("error", None)
-                    
-                    logger.info(f"Remote task {remote_task_id} status: {remote_status}, progress: {progress}%")
-                    
-                    # 更新本地任务状态和进度
-                    TaskService.update_task_status(db, task.id, remote_status, progress=progress, error=error)
-                    
-                    # 检查任务是否完成
-                    if remote_status in ["completed", "failed", "cancelled"]:
-                        logger.info(f"Task {task.id} with remote_task_id {remote_task_id} completed with status: {remote_status}")
-                        
-                        if remote_status == "completed":
-                            # 获取任务结果
-                            results = await self.remote_client.get_task_results(remote_task_id)
-                            if results:
-                                logger.info(f"Got results for task {task.id}: {results}")
-                                # 更新任务结果
-                                TaskService.update_task_status(db, task.id, "completed", progress=100, result=results)
-                        elif remote_status == "failed":
-                            # 检查是否需要重试
-                            if task.retries < task.max_retries:
-                                logger.info(f"Task {task.id} failed, retrying... (attempt {task.retries + 1}/{task.max_retries})")
-                                # 计算重试延迟
-                                import random
-                                exponential_delay = task.retry_delay * (2 ** task.retries)
-                                jitter = random.randint(0, 10)
-                                retry_delay = min(exponential_delay + jitter, 300)  # 最大延迟5分钟
-                                
-                                logger.info(f"Waiting {retry_delay} seconds before retrying task {task.id}")
-                                await asyncio.sleep(retry_delay)
-                                
-                                # 重试任务
-                                TaskService.retry_task(db, task.id)
-                                return
-                            else:
-                                logger.info(f"Task {task.id} failed after {task.max_retries} attempts, marking as final failed")
-                        
-                        # 取消WebSocket任务
-                        ws_task.cancel()
-                        break
-                
-                # 等待一段时间后继续轮询（作为备份）
-                await asyncio.sleep(30)
+            from app.models.log import ExperimentLog
+            log_entry = ExperimentLog(experiment_id=experiment_id, message=message)
+            db.add(log_entry)
+            db.commit()
         except Exception as e:
-            logger.error(f"Error polling task status for {remote_task_id}: {e}")
-            ws_task.cancel()
-            
-            # 检查是否需要重试
-            if task.retries < task.max_retries:
-                logger.info(f"Error polling task status, retrying... (attempt {task.retries + 1}/{task.max_retries})")
-                # 计算重试延迟
-                import random
-                exponential_delay = task.retry_delay * (2 ** task.retries)
-                jitter = random.randint(0, 10)
-                retry_delay = min(exponential_delay + jitter, 300)  # 最大延迟5分钟
-                
-                logger.info(f"Waiting {retry_delay} seconds before retrying task {task.id}")
-                await asyncio.sleep(retry_delay)
-                
-                # 重试任务
-                TaskService.retry_task(db, task.id)
-            else:
-                logger.info(f"Error polling task status after {task.max_retries} attempts, marking as final failed")
-                TaskService.update_task_status(db, task.id, "failed", error=f"Error polling remote task status: {str(e)}")
-        
-        # 等待WebSocket任务完成
-        try:
-            await ws_task
-        except asyncio.CancelledError:
-            logger.info("WebSocket task cancelled")
-        except Exception as e:
-            logger.error(f"Error in WebSocket task: {e}")
-    
+            logger.warning(f"Failed to add log entry: {e}")
+
     def stop(self):
-        """停止任务执行器"""
         self.running = False
-        logger.info(f"Train worker {self.worker_id} stopped")
+        logger.info(f"Train worker '{self.worker_id}' stopping...")
+
 
 async def main():
-    """主函数"""
-    # 创建训练节点实例
-    worker = TrainWorker("local_train_worker", max_workers=2)
-    
+    """Entry point for the training worker."""
+    # Ensure database tables exist
+    Base.metadata.create_all(bind=engine)
+
+    worker = TrainWorker(
+        worker_id="local_worker",
+        max_workers=int(os.getenv("MAX_TRAINING_WORKERS", "2")),
+        poll_interval=int(os.getenv("WORKER_POLL_INTERVAL", "5")),
+    )
+
     try:
-        # 启动训练节点
         await worker.run()
     except KeyboardInterrupt:
-        # 处理键盘中断
         worker.stop()
         logger.info("Train worker stopped by user")
 
+
 if __name__ == "__main__":
-    # 运行主函数
     asyncio.run(main())
