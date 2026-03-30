@@ -4,20 +4,21 @@ from typing import Dict, Any, Optional, Callable
 from app.config import settings
 import logging
 import asyncio
+import os
 
 logger = logging.getLogger(__name__)
 
 class RemoteClient:
-    """DDNS服务器客户端工具"""
+    """Remote training server client (optional, for distributed training)."""
     
     def __init__(self):
         self.server_url = settings.training_server_url
         self.timeout = settings.training_server_timeout
-        self.max_retries = 3  # 最大重试次数
-        self.base_retry_delay = 1.0  # 基础重试延迟（秒）
-        # 远程训练服务器认证信息
-        self.username = "idea"  # 远程训练服务器账号
-        self.password = "moshou99"  # 远程训练服务器密码
+        self.max_retries = 3
+        self.base_retry_delay = 1.0
+        # Credentials from environment variables only
+        self.username = os.getenv("TRAINING_SERVER_USERNAME", "")
+        self.password = os.getenv("TRAINING_SERVER_PASSWORD", "")
     
     async def _make_request(self, method: str, url: str, **kwargs) -> Optional[Dict[str, Any]]:
         """通用请求方法，带有重试机制和详细的异常处理"""

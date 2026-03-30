@@ -1,8 +1,11 @@
 import os
+import warnings
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+_DEFAULT_SECRET_KEY = "change-me-in-production"
 
 class Settings:
     """Application settings"""
@@ -10,28 +13,44 @@ class Settings:
     database_url = os.getenv("DATABASE_URL", "sqlite:///./test.db")
     
     # Security settings
-    secret_key = os.getenv("SECRET_KEY", "your-secret-key-here")
+    secret_key = os.getenv("SECRET_KEY", _DEFAULT_SECRET_KEY)
     algorithm = os.getenv("ALGORITHM", "HS256")
     access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     
-    # Training server settings
-    training_server_url = os.getenv("TRAINING_SERVER_URL", "http://ddns.hoo.ink:8000")
+    # Training settings (local mode by default)
+    training_mode = os.getenv("TRAINING_MODE", "local")  # "local" or "remote"
+    training_server_url = os.getenv("TRAINING_SERVER_URL", "http://localhost:8000")
     training_server_timeout = int(os.getenv("TRAINING_SERVER_TIMEOUT", "3600"))
+    
+    # QLib settings
+    qlib_provider_uri = os.getenv("QLIB_PROVIDER_URI", "~/.qlib/qlib_data/cn_data")
+    
+    # CORS settings
+    cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001,http://localhost:5173")
     
     # API settings
     api_v1_str = "/api"
     project_name = "QLib AI API"
     
-    # Email settings
-    smtp_server = os.getenv("SMTP_SERVER", "smtphz.qiye.163.com")
-    smtp_port = int(os.getenv("SMTP_PORT", "994"))
-    smtp_username = os.getenv("SMTP_USERNAME", "qlib@uszho.com")
-    smtp_password = os.getenv("SMTP_PASSWORD", "Moshou99")
+    # Email settings (all from environment variables, no defaults with real credentials)
+    smtp_server = os.getenv("SMTP_SERVER", "")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_username = os.getenv("SMTP_USERNAME", "")
+    smtp_password = os.getenv("SMTP_PASSWORD", "")
     smtp_use_tls = os.getenv("SMTP_USE_TLS", "True").lower() in ("true", "1", "t")
-    sender_email = os.getenv("SENDER_EMAIL", "qlib@uszho.com")
+    sender_email = os.getenv("SENDER_EMAIL", "")
     
     # Email verification settings
     verification_token_expire_minutes = int(os.getenv("VERIFICATION_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
 
 # Create settings instance
 settings = Settings()
+
+# Warn about insecure default secret key
+if settings.secret_key == _DEFAULT_SECRET_KEY:
+    warnings.warn(
+        "SECRET_KEY is set to the default value. "
+        "Set a strong random SECRET_KEY environment variable for production use.",
+        UserWarning,
+        stacklevel=1,
+    )

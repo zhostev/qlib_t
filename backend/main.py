@@ -64,19 +64,13 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Configure CORS from environment variable if available, otherwise use production origins
-from app.db.database import settings
+# Configure CORS from environment variable
+from app.config import settings
 
-# Get allowed origins from settings or use default production origins
-allow_origins = getattr(settings, "cors_origins", [
-    "http://116.62.59.244",  # Production IP
-    "http://qlib.hoo.ink",    # Production domain
-    "http://ddns.hoo.ink:8000"  # DDNS server for training
-])
-
-# Ensure allow_origins is a list
+# Get allowed origins from settings
+allow_origins = settings.cors_origins
 if isinstance(allow_origins, str):
-    allow_origins = allow_origins.split(",")
+    allow_origins = [origin.strip() for origin in allow_origins.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
@@ -206,13 +200,13 @@ async def monitor_performance(request, call_next):
     
     return response
 
-# Include API router without training endpoints
-from app.api import auth, experiments, models, configs, benchmarks, factors, data, monitoring
+# Include API router
+from app.api import auth, experiments, models, configs, benchmarks, factors, data, monitoring, train, tasks
 
-# Create main API router without training
+# Create main API router
 main_api_router = APIRouter()
 
-# Include sub-routers except training
+# Include sub-routers
 main_api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 main_api_router.include_router(experiments.router, prefix="/experiments", tags=["experiments"])
 main_api_router.include_router(models.router, prefix="/models", tags=["models"])
@@ -221,6 +215,8 @@ main_api_router.include_router(benchmarks.router, prefix="/benchmarks", tags=["b
 main_api_router.include_router(factors.router, prefix="/factors", tags=["factors"])
 main_api_router.include_router(data.router, prefix="/data", tags=["data"])
 main_api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
+main_api_router.include_router(train.router, prefix="/train", tags=["train"])
+main_api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 
 # Include main API router
 app.include_router(main_api_router, prefix="/api")
@@ -306,3 +302,19 @@ def system_status():
 
 # Export WebSocket manager for use in other modules
 global_websocket_manager = manager
+
+# WebSocket endpoint for training log streaming
+@app.websocket("/ws/logs/{task_id}")
+async def websocket_log_endpoint(websocket: WebSocket, task_id: int):
+    """WebSocket endpoint for real-time training log streaming"""
+    task_key = str(task_id)
+    await manager.connect(websocket, task_key)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, task_key)
+    except Exception:
+        manager.disconnect(websocket, task_key)
